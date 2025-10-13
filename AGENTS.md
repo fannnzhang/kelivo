@@ -1,3 +1,64 @@
+# AGENTS.md — Spec-Driven Mobile Development Guidelines
+
+Scope: Entire repository. Applies to generating and maintaining docs under `spec/` and templates under `templates/`.
+
+Principles
+- Templates must be pure skeletons. Do not embed usage guidance, examples, or process constraints inside files in `templates/`. Place all rules, conventions, and constraints here.
+- Doc-driven, Mock-first, Progressive delivery. Implement phased, verifiable increments that move from local mock to real integration with clear switches.
+- Avoid over-engineering. Design to current needs and project constraints.
+
+Spec Workflow
+1) Create/Update `spec/<feature-or-bug>/requirements.md`, `design.md`, `tasks.md` by instantiating the templates in `templates/`.
+2) If a spec exists, perform incremental updates without breaking section order or numbering.
+3) Always keep content aligned with repository `README.md`, any `constitution.md`, and existing code.
+
+Templates Usage Rules
+1) requirements.md
+- Write requirements using EARS syntax:
+  WHEN <trigger> THEN <system> SHALL <response> [SO THAT <rationale>]
+- Split work into Phases in the “Phased Development Strategy” table. Each Phase is independently runnable, testable, and revertible.
+- For each Phase, author detailed Requirements with:
+  - User Story (role, action, purpose)
+  - Acceptance Criteria (EARS lines)
+- Capture Non-functional & Cross-cutting requirements that apply across phases (architecture constraints, error handling/UX, performance/security). Keep content concrete and testable.
+
+2) design.md
+- Baseline from the current repo. Do not assume architecture; infer from code/docs. If unknowns exist, mark as “To Confirm” with an evidence path and deadline.
+- Provide a progressive strategy (Phase table) that maps to requirements Phases and supports Mock → Real with an explicit switch (config/DI/build flag/env).
+- Describe solution minimally on top of the baseline: what’s new/changed/reused; compatibility; observability.
+- Document modules and call flows, data models and DTO↔Domain mapping, contracts/integrations, UI/interaction, verification & acceptance, performance, security & privacy, observability & ops, impact, migration & rollback, release, risks & trade-offs, code map & conventions, review checklist.
+
+3) tasks.md
+- Purpose: definitive, executable implementation plan (final authority for work). Keep design prose out.
+- Structure: nested, numbered checklist only (no tables)
+  - Phases Overview (bulleted list of Phase titles and brief notes)
+  - Phase sections (`## Phase N: <Title>`), each with numbered tasks:
+    - Task format:
+      - `- [ ] N. <Task group>`
+      - Sub-bullets: Summary, Files, Changes, Requirements, Acceptance
+      - Optional subtasks: `N.1`, `N.2`, … with the same sub-bullets
+  - Cross-phase Tasks section for global items spanning all phases
+- Guidance: each task must include exact file paths and concrete changes; acceptance describes how to verify completion.
+
+Execution Policy (applies when filling tasks.md)
+- Mock-first, then Real: deliver an end-to-end flow with local mock or stub before real integration; keep a clear switch/flag.
+- Execution order inside a user story: tests-first (if present) → models → services → endpoints/UI → integration → validation/logging.
+- Parallelism: tasks marked [P] can run in parallel; user stories can run in parallel after Foundational Phase completes.
+
+Branching & Commits
+- Create a working branch per spec item: `git checkout -b spec/<feature-or-bug-name>`
+- Phase Gate (mandatory): After completing Implementation for a Phase:
+  - Update `tasks.md` statuses and the Progress Log
+  - Attach acceptance evidence (screenshots, recordings, logs, API receipts)
+  - Verify build/compile passes
+    - Project default: `fvm dart format --set-exit-if-changed . && fvm dart analyze`
+    - If enabled, run minimal build: `fvm flutter build apk --debug` (or iOS equivalent)
+  - Create a dedicated commit
+    - Examples:
+      - `feat(<scope>): complete Phase <n> – <title> [Mock|Real]`
+      - `fix(<scope>): stabilize Phase <n> – <title>`
+    - Reference related Spec/Issue where applicable (e.g., `refs: SPEC-123`)
+    
 # Repository Guidelines
 
 ## Project Structure & Module Organization
@@ -20,7 +81,7 @@ Update `lib/l10n/app_en.arb` (and translations) when adding user-facing strings,
 
 ## Spec‑Kit Development Workflow
 - Scope: Use for all non-trivial features/bugfixes to keep design, tasks, and code aligned.
-- Read: `spec-kit.md` for end-to-end rules. Follow templates in `templates/requirements_template.md`, `templates/design_template.md`, `templates/tasks_template.md`.
+- Follow templates in `templates/requirements_template.md`, `templates/design_template.md`, `templates/tasks_template.md`.
 - Branching:
   - `git checkout -b spec/<name>` for specs; follow up with `feature/<name>` for code.
 - Required specs (per item):
