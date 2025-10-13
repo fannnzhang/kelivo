@@ -61,6 +61,7 @@ import '../../../core/models/quick_phrase.dart';
 import '../../../core/providers/quick_phrase_provider.dart';
 import '../../quick_phrase/widgets/quick_phrase_menu.dart';
 import '../../quick_phrase/pages/quick_phrases_page.dart';
+import '../../../shared/widgets/ios_checkbox.dart';
 
 
 class HomePage extends StatefulWidget {
@@ -2576,7 +2577,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     if (inputBox == null) return;
     
     final inputBarHeight = inputBox.size.height;
-    final position = Offset(0, inputBarHeight); // Pass height as dy
+    final topLeft = inputBox.localToGlobal(Offset.zero);
+    final position = Offset(topLeft.dx, inputBarHeight); // dx = global left, dy = input height
     
     // Dismiss keyboard before showing menu to prevent flickering
     _dismissKeyboard();
@@ -3216,11 +3218,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                                   if (_selecting && (message.role == 'user' || message.role == 'assistant'))
                                     Padding(
                                       padding: const EdgeInsets.only(left: 10, right: 6),
-                                      child: Checkbox(
+                                      child: IosCheckbox(
                                         value: _selectedItems.contains(message.id),
                                         onChanged: (v) {
                                           setState(() {
-                                            if (v == true) {
+                                            if (v) {
                                               _selectedItems.add(message.id);
                                             } else {
                                               _selectedItems.remove(message.id);
@@ -4057,11 +4059,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                                               if (_selecting && (message.role == 'user' || message.role == 'assistant'))
                                                 Padding(
                                                   padding: const EdgeInsets.only(left: 10, right: 6),
-                                                  child: Checkbox(
+                                                  child: IosCheckbox(
                                                     value: _selectedItems.contains(message.id),
                                                     onChanged: (v) {
                                                       setState(() {
-                                                        if (v == true) {
+                                                        if (v) {
                                                           _selectedItems.add(message.id);
                                                         } else {
                                                           _selectedItems.remove(message.id);
@@ -4420,6 +4422,22 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                                     onLongPressMcp: () {
                                       Navigator.of(context).push(
                                         MaterialPageRoute(builder: (_) => const McpPage()),
+                                      );
+                                    },
+                                    // Quick Phrase button (tablet): show to the right of MCP
+                                    showQuickPhraseButton: (() {
+                                      final assistant = context.watch<AssistantProvider>().currentAssistant;
+                                      final quickPhraseProvider = context.watch<QuickPhraseProvider>();
+                                      final globalCount = quickPhraseProvider.globalPhrases.length;
+                                      final assistantCount = assistant != null
+                                          ? quickPhraseProvider.getForAssistant(assistant.id).length
+                                          : 0;
+                                      return (globalCount + assistantCount) > 0;
+                                    })(),
+                                    onQuickPhrase: _showQuickPhraseMenu,
+                                    onLongPressQuickPhrase: () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(builder: (_) => const QuickPhrasesPage()),
                                       );
                                     },
                                     showMiniMapButton: true,
