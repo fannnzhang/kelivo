@@ -55,6 +55,7 @@ app.*.map.json
 
 internationalization.md
 /macos/Podfile.lock
+/desiredFileName.txt
 
 # FVM Version Cache
 .fvm/
