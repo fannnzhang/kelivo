@@ -8,4 +8,18 @@ class MockRustLibApi implements RustLibApi {
 
   @override
   Future<void> crateApiSimpleInitApp() async {}
+
+  @override
+  Future<String> crateApiMarkdownSanitizerReplaceInlineBase64Images({
+    required String markdown,
+  }) async {
+    return markdown;
+  }
+
+  @override
+  Future<String> crateApiMarkdownSanitizerInlineLocalImagesToBase64({
+    required String markdown,
+  }) async {
+    return markdown;
+  }
 }
