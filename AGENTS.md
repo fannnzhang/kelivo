@@ -58,6 +58,13 @@ Branching & Commits
       - `feat(<scope>): complete Phase <n> – <title> [Mock|Real]`
       - `fix(<scope>): stabilize Phase <n> – <title>`
     - Reference related Spec/Issue where applicable (e.g., `refs: SPEC-123`)
+
+## MCP Usage (context7 MCP)
+- All external tool access and context retrieval must use MCP (Model Context Protocol).
+- Required provider: `context7`. Configure and connect to the context7 MCP server for development and CI.
+- Prefer MCP tools over direct network calls. In specs/tasks, name the MCP tool/capability being used.
+- If MCP is unavailable, mark as “To Confirm” with fallback and deadline, proceed Mock‑first, and avoid hardcoding tokens.
+- Secrets/endpoints must come from environment variables (e.g., `MCP_CONTEXT7_URL`, `MCP_CONTEXT7_TOKEN`) and must not be committed.
     
 # Repository Guidelines
 
