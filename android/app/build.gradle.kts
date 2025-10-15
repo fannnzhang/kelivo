@@ -32,24 +32,34 @@ android {
         versionName = flutter.versionName
     }
 
-    val keystorePropertiesFile = rootProject.file("key.properties")
-    val keystoreProperties = Properties().apply {
-        load(keystorePropertiesFile.inputStream())
-    }
+    val keystoreCandidates = listOf(
+        rootProject.file("key.properties"),
+        rootProject.file("android/key.properties")
+    )
+    val keystorePropertiesFile = keystoreCandidates.firstOrNull { it.exists() }
+    val keystoreProperties = Properties()
 
-    signingConfigs {
-        create("release") {
-            storeFile = file(keystoreProperties["storeFile"] as String)
-            storePassword = keystoreProperties["storePassword"] as String
-            keyAlias = keystoreProperties["keyAlias"] as String
-            keyPassword = keystoreProperties["keyPassword"] as String
-        }
-    }
+    if (keystorePropertiesFile != null && keystorePropertiesFile.exists()) {
+        keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
 
-    buildTypes {
-        getByName("release") {
-            signingConfig = signingConfigs.getByName("release")
+        signingConfigs {
+            create("release") {
+                storeFile = file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+            }
         }
+
+        buildTypes {
+            getByName("release") {
+                signingConfig = signingConfigs.getByName("release")
+            }
+        }
+    } else {
+        println("Warning: key.properties not found in project root or android/. Debug builds will work; release will be unsigned.")
+        // Do not configure a release signingConfig when key.properties is absent.
+        // This avoids build failures for local debug runs.
     }
 }
 
