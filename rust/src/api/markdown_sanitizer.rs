@@ -10,10 +10,9 @@ use std::path::{Path, PathBuf};
 use uuid::Uuid;
 
 lazy_static! {
-    static ref INLINE_BASE64_RE: Regex = Regex::new(
-        r"!\[[^\]]*\]\((data:image/[a-zA-Z0-9.+\-]+;base64,[a-zA-Z0-9+/=\r\n]+)\)"
-    )
-    .expect("invalid base64 image regex");
+    static ref INLINE_BASE64_RE: Regex =
+        Regex::new(r"!\[[^\]]*\]\((data:image/[a-zA-Z0-9.+\-]+;base64,[a-zA-Z0-9+/=\r\n]+)\)")
+            .expect("invalid base64 image regex");
     static ref INLINE_IMAGE_RE: Regex =
         Regex::new(r"!\[[^\]]*\]\(([^)]+)\)").expect("invalid image regex");
 }
@@ -171,13 +170,12 @@ fn decode_base64(payload: &str) -> AnyResult<Vec<u8>> {
 
 fn write_bytes(path: &Path, bytes: &[u8]) -> AnyResult<()> {
     if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).with_context(|| {
-            format!("failed to create parent directory for {}", path.display())
-        })?;
+        fs::create_dir_all(parent)
+            .with_context(|| format!("failed to create parent directory for {}", path.display()))?;
     }
 
-    let mut file = File::create(path)
-        .with_context(|| format!("failed to create file {}", path.display()))?;
+    let mut file =
+        File::create(path).with_context(|| format!("failed to create file {}", path.display()))?;
     file.write_all(bytes)
         .with_context(|| format!("failed to write file {}", path.display()))?;
     file.flush()
@@ -223,7 +221,10 @@ fn is_local_image_path(path: &str) -> bool {
         return false;
     }
 
-    lower.starts_with("file://") || path.starts_with('/') || path.contains(':') || path.contains('\\')
+    lower.starts_with("file://")
+        || path.starts_with('/')
+        || path.contains(':')
+        || path.contains('\\')
 }
 
 fn resolve_local_path(path: &str) -> PathBuf {
@@ -235,7 +236,11 @@ fn resolve_local_path(path: &str) -> PathBuf {
 }
 
 fn guess_mime_from_path(path: &Path) -> &'static str {
-    match path.extension().and_then(|ext| ext.to_str()).map(|s| s.to_ascii_lowercase()) {
+    match path
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .map(|s| s.to_ascii_lowercase())
+    {
         Some(ext) if ext == "jpg" || ext == "jpeg" => "image/jpeg",
         Some(ext) if ext == "webp" => "image/webp",
         Some(ext) if ext == "gif" => "image/gif",
@@ -256,7 +261,10 @@ mod tests {
     use tempfile::tempdir;
 
     fn set_test_images_dir(dir: &Path) {
-        env::set_var("KELIVO_SANITIZER_IMAGE_DIR", dir.to_string_lossy().to_string());
+        env::set_var(
+            "KELIVO_SANITIZER_IMAGE_DIR",
+            dir.to_string_lossy().to_string(),
+        );
     }
 
     fn unset_test_images_dir() {
@@ -271,9 +279,7 @@ mod tests {
 
         let payload_bytes = b"test-png".to_vec();
         let payload_b64 = encode_b64(&payload_bytes);
-        let markdown = format!(
-            "# Title\n![sample](data:image/png;base64,{payload_b64})\n"
-        );
+        let markdown = format!("# Title\n![sample](data:image/png;base64,{payload_b64})\n");
 
         let result = replace_inline_base64_images(markdown.clone()).expect("ok result");
         unset_test_images_dir();

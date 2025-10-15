@@ -1,8 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:Kelivo/src/rust/api/google_auth.dart' as rust_api;
 import 'package:http/http.dart' as http;
-import 'package:jose/jose.dart';
+
+typedef JwtAssertionFactory =
+    Future<String> Function(
+      GoogleServiceAccountCredentials creds,
+      List<String> scopes,
+    );
 
 /// Minimal Service Account credentials parsed from a JSON string.
 class GoogleServiceAccountCredentials {
@@ -27,7 +33,9 @@ class GoogleServiceAccountCredentials {
         : 'https://oauth2.googleapis.com/token';
     final proj = (obj['project_id'] as String?)?.trim();
     if (email.isEmpty || key.isEmpty) {
-      throw ArgumentError('Invalid service account JSON: missing client_email/private_key');
+      throw ArgumentError(
+        'Invalid service account JSON: missing client_email/private_key',
+      );
     }
     return GoogleServiceAccountCredentials(
       clientEmail: email,
@@ -52,15 +60,23 @@ class GoogleServiceAccountAuth {
   /// Default scope is cloud-platform which covers Vertex AI.
   static Future<String> getAccessTokenFromJson(
     String serviceAccountJson, {
-    List<String> scopes = const ['https://www.googleapis.com/auth/cloud-platform'],
+    List<String> scopes = const [
+      'https://www.googleapis.com/auth/cloud-platform',
+    ],
+    JwtAssertionFactory? createJwt,
   }) async {
-    final creds = GoogleServiceAccountCredentials.fromJsonString(serviceAccountJson);
-    return getAccessToken(creds, scopes: scopes);
+    final creds = GoogleServiceAccountCredentials.fromJsonString(
+      serviceAccountJson,
+    );
+    return getAccessToken(creds, scopes: scopes, createJwt: createJwt);
   }
 
   static Future<String> getAccessToken(
     GoogleServiceAccountCredentials creds, {
-    List<String> scopes = const ['https://www.googleapis.com/auth/cloud-platform'],
+    List<String> scopes = const [
+      'https://www.googleapis.com/auth/cloud-platform',
+    ],
+    JwtAssertionFactory? createJwt,
   }) async {
     final key = _cacheKey(creds.clientEmail, scopes, creds.tokenUri);
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
@@ -69,22 +85,7 @@ class GoogleServiceAccountAuth {
       return cached.token;
     }
 
-    final claims = <String, Object?>{
-      'iss': creds.clientEmail,
-      'scope': scopes.join(' '),
-      'aud': creds.tokenUri,
-      'iat': now,
-      'exp': now + 3600, // max 1 hour
-    };
-
-    // Sign with RS256 using PEM private key
-    final jwk = JsonWebKey.fromPem(creds.privateKey);
-    final builder = JsonWebSignatureBuilder()
-      ..jsonContent = claims
-      ..addRecipient(jwk, algorithm: 'RS256')
-      ..setProtectedHeader('typ', 'JWT');
-    final jws = builder.build();
-    final assertion = jws.toCompactSerialization();
+    final assertion = await (createJwt ?? _createJwtAssertion)(creds, scopes);
 
     final res = await http.post(
       Uri.parse(creds.tokenUri),
@@ -110,5 +111,24 @@ class GoogleServiceAccountAuth {
   static String _cacheKey(String email, List<String> scopes, String tokenUri) {
     final s = List<String>.from(scopes)..sort();
     return '$email|${s.join(',')}|$tokenUri';
+  }
+}
+
+Future<String> _createJwtAssertion(
+  GoogleServiceAccountCredentials creds,
+  List<String> scopes,
+) async {
+  try {
+    return await rust_api.createGoogleAuthJwt(
+      clientEmail: creds.clientEmail,
+      privateKeyPem: creds.privateKey,
+      tokenUri: creds.tokenUri,
+      scopes: scopes,
+    );
+  } on Object catch (err, stack) {
+    Error.throwWithStackTrace(
+      StateError('Rust JWT signing failed: $err'),
+      stack,
+    );
   }
 }

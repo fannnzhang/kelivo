@@ -2,6 +2,16 @@ import 'frb_generated.dart';
 
 class MockRustLibApi implements RustLibApi {
   @override
+  Future<String> crateApiGoogleAuthCreateGoogleAuthJwt({
+    required String clientEmail,
+    required String privateKeyPem,
+    required String tokenUri,
+    required List<String> scopes,
+  }) async {
+    return 'mock-jwt';
+  }
+
+  @override
   String crateApiSimpleGreet({required String name}) {
     return 'Hello, $name!';
   }
