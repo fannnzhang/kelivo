@@ -59,6 +59,44 @@ Branching & Commits
       - `fix(<scope>): stabilize Phase <n> – <title>`
     - Reference related Spec/Issue where applicable (e.g., `refs: SPEC-123`)
 
+Commit Message Style
+- Subject: `type(scope): summary` (concise)
+- Separation: one blank line between subject and body
+- Body: use real newlines; NEVER embed literal `\n` to represent line breaks
+- Structure: optional section headings followed by bullets, e.g., `Templates:`, `Docs:`, `Spec:`
+- Bullets: one item per line starting with `- `
+- Wrapping: aim for ~72 chars per line for readability
+
+Phase Commit Block (must be included in commit body)
+- Phase: `<n> – <title> [Mock|Real]`
+- Spec: `spec/<feature-or-bug>/tasks.md`
+- Tasks: `<IDs completed>`
+- Build: `<commands run> → PASS`
+- Evidence: `<links to screenshots/recordings/logs>`
+
+Usage
+- Configure a local commit template once (optional):
+  - `git config commit.template .git-commit-template`
+- Or use `git commit -t .git-commit-template`
+
+Example
+```
+feat(templates+spec): adopt clean template structure with checklist
+
+Templates:
+- Merge checklist-style sections into tasks template
+- Simplify all templates to be structure-only (move guidance to GUIDELINES.md)
+- Streamline DoD section in tasks template
+
+Docs:
+- Add GUIDELINES.md consolidating template usage, Mock→Real transition, and phase gate rules
+- Document commit message style: use real newlines (not literal "\n"), and prefer headings + bullet points
+
+Spec:
+- Update sample feature spec to follow the new template structure
+- Preserve original content, remove template-like instructions, and add phase checklists to tasks.md
+```
+
 ## MCP Usage (context7 MCP)
 - All external tool access and context retrieval must use MCP (Model Context Protocol).
 - Required provider: `context7`. Configure and connect to the context7 MCP server for development and CI.

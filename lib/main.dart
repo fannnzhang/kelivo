@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 // import 'dart:async';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -7,6 +8,7 @@ import 'package:flutter/services.dart';
 // import 'package:logging/logging.dart' as logging;
 // Theme is now managed in SettingsProvider
 import 'src/rust/frb_generated.dart';
+import 'src/rust/mock_api.dart';
 import 'theme/theme_factory.dart';
 import 'theme/palettes.dart';
 import 'package:provider/provider.dart';
@@ -28,10 +30,15 @@ final RouteObserver<ModalRoute<dynamic>> routeObserver = RouteObserver<ModalRout
 bool _didCheckUpdates = false; // one-time update check flag
 bool _didEnsureAssistants = false; // ensure defaults after l10n ready
 
+const bool kUseRust = bool.fromEnvironment('USE_RUST', defaultValue: kDebugMode);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await RustLib.init();
+  if (kUseRust) {
+    await RustLib.init();
+  } else {
+    RustLib.initMock(api: MockRustLibApi());
+  }
   // Debug logging and global error handlers were enabled previously for diagnosis.
   // They are commented out now per request to reduce log noise.
   // FlutterError.onError = (FlutterErrorDetails details) { ... };
@@ -167,4 +174,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
- 

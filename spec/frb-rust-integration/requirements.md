@@ -11,6 +11,7 @@ Kelivo 项目已引入 flutter_rust_bridge（FRB）以支持 Rust 能力（已�
 参考资料（通过 MCP/context7 获取与核对）：
 - FRB 官方文档（Guides/Manual/Quickstart）：https://cjycode.com/flutter_rust_bridge/guides/
 - Context7 Library: /fzyzcjy/flutter_rust_bridge（使用 MCP context7 工具获取细节与命令）
+\- 开发向构建与开关指南：`docs/rust_frb_build.md`
 
 
 ## 2. 需求描述（Requirements）

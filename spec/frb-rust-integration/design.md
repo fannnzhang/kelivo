@@ -9,6 +9,7 @@
   - `lib/src/rust/`（Dart 侧生成与 API）
   - `lib/main.dart:32` 初始化 `RustLib.init()`
 - 参考文档（通过 MCP/context7 获取）：`/fzyzcjy/flutter_rust_bridge` 与 https://cjycode.com/flutter_rust_bridge/guides/
+- 开发向构建与开关指南：`docs/rust_frb_build.md`
 
 
 ## 1. 项目基线与约束（Baseline & Constraints）

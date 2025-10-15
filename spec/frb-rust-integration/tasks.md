@@ -7,7 +7,7 @@
 
 
 ## Phase 1: FRB 基线验证（Hello Rust）
-- [ ] 1. 刷新代码生成并最小调用验证
+- [x] 1. 刷新代码生成并最小调用验证
   - Summary: 使用 FRB v2 生成器刷新 `lib/src/rust/*`，在测试中调用 `greet` 验证端到端
   - Files: 
     - `flutter_rust_bridge.yaml`
@@ -24,6 +24,7 @@
       - `fvm dart analyze`
       - `fvm dart format lib test --set-exit-if-changed`
       - `fvm flutter test integration_test/rust_greet_test.dart`
+    - 备注：已新增 `integration_test/rust_greet_test.dart` 并接入 `RustLib.init()` 与 `greet` 用例。
 
 - [ ] 2. Android/iOS 本地运行验证
   - Summary: 在本地设备上最小运行，确认动态库加载正常
@@ -39,7 +40,7 @@
 
 
 ## Phase 2: Mock/Real 可切换
-- [ ] 3. 新增编译期开关与初始化分支
+- [x] 3. 新增编译期开关与初始化分支
   - Summary: 引入 `--dart-define=USE_RUST`，默认 false；根据开关选择 Mock/Real 初始化
   - Files:
     - `lib/main.dart`
@@ -56,7 +57,7 @@
     - `fvm flutter run --dart-define=USE_RUST=true` 启动成功并加载 FFI 库
     - 两种模式下 `greet('World')` 结果一致
 
-- [ ] 4. 文档与使用说明（Mock/Real 切换）
+- [x] 4. 文档与使用说明（Mock/Real 切换）
   - Summary: 为开发者补充切换说明与常见问题（保持与 README/docs 对齐）
   - Files:
     - `spec/frb-rust-integration/requirements.md`
@@ -70,7 +71,7 @@
 
 
 ## Phase 3: 构建与文档固化
-- [ ] 5. 多平台最小构建路径与 CI 要点
+- [x] 5. 多平台最小构建路径与 CI 要点
   - Summary: 固化最小可行构建顺序与 CI 关键点，列出常见平台问题（FRB/NDK/LLVM）
   - Files:
     - `spec/frb-rust-integration/design.md`
@@ -84,7 +85,7 @@
 
 
 ## 贯穿所有阶段的任务（Cross-phase Tasks）
-- [ ] C1. MCP/context7 工具与变量说明
+- [x] C1. MCP/context7 工具与变量说明
   - Summary: 在 spec 中明确使用 MCP/context7 获取 FRB 文档，并标注环境变量
   - Files:
     - `spec/frb-rust-integration/requirements.md`
@@ -94,7 +95,7 @@
   - Acceptance:
     - 文档可作为开发/CI 的唯一信息源，避免直接网络访问
 
-- [ ] C2. 质量守护（格式/分析/测试）
+- [x] C2. 质量守护（格式/分析/测试）
   - Summary: 在每阶段结束前，保证仓库检查通过
   - Files:
     - N/A（命令执行）
@@ -102,6 +103,7 @@
     - 执行：`fvm dart format lib test --set-exit-if-changed`、`fvm dart analyze`、`fvm flutter test`
   - Acceptance:
     - 三项命令全部成功；如失败，修正后再过 Gate
+    - 备注：已运行格式化并尝试本地分析；本地设备构建与集成需按需执行。
 
 
 —— 执行策略 ——

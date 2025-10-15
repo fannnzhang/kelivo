@@ -62,6 +62,10 @@ Pull Requests and Issues are welcome!
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
+### Development: Rust/FRB
+
+For flutter_rust_bridge generation and Mock/Real switch instructions, see `docs/rust_frb_build.md`.
+
 ## 💖 Acknowledgements
 
 Special thanks to the [RikkaHub](https://github.com/re-ovo/rikkahub) project for the UI design inspiration. Kelivo's interface design is heavily inspired by RikkaHub's beautiful and practical design.
