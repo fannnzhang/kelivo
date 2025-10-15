@@ -61,38 +61,52 @@ class _ProvidersPageState extends State<ProvidersPage> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: Icon(Lucide.ArrowLeft, size: 22),
-          onPressed: () => Navigator.of(context).maybePop(),
+        leading: Tooltip(
+          message: l10n.settingsPageBackButton,
+          child: _TactileIconButton(
+            icon: Lucide.ArrowLeft,
+            color: cs.onSurface,
+            size: 22,
+            onTap: () => Navigator.of(context).maybePop(),
+          ),
         ),
         title: Text(l10n.providersPageTitle),
         actions: [
-          IconButton(
-            tooltip: l10n.providersPageImportTooltip,
-            icon: Icon(Lucide.Import, color: cs.onSurface),
-            onPressed: () async {
-              await showImportProviderSheet(context);
-              if (!mounted) return;
-              setState(() {});
-            },
-          ),
-          IconButton(
-            tooltip: l10n.providersPageAddTooltip,
-            icon: Icon(Lucide.Plus, color: cs.onSurface),
-            onPressed: () async {
-              final createdKey = await showAddProviderSheet(context);
-              if (!mounted) return;
-              if (createdKey != null && createdKey.isNotEmpty) {
+          Tooltip(
+            message: l10n.providersPageImportTooltip,
+            child: _TactileIconButton(
+              icon: Lucide.Import,
+              color: cs.onSurface,
+              size: 22,
+              onTap: () async {
+                await showImportProviderSheet(context);
+                if (!mounted) return;
                 setState(() {});
-                final msg = l10n.providersPageProviderAddedSnackbar;
-                showAppSnackBar(
-                  context,
-                  message: msg,
-                  type: NotificationType.success,
-                );
-              }
-            },
+              },
+            ),
           ),
+          Tooltip(
+            message: l10n.providersPageAddTooltip,
+            child: _TactileIconButton(
+              icon: Lucide.Plus,
+              color: cs.onSurface,
+              size: 22,
+              onTap: () async {
+                final createdKey = await showAddProviderSheet(context);
+                if (!mounted) return;
+                if (createdKey != null && createdKey.isNotEmpty) {
+                  setState(() {});
+                  final msg = l10n.providersPageProviderAddedSnackbar;
+                  showAppSnackBar(
+                    context,
+                    message: msg,
+                    type: NotificationType.success,
+                  );
+                }
+              },
+            ),
+          ),
+          const SizedBox(width: 12),
         ],
       ),
       body: Padding(
@@ -150,7 +164,7 @@ class _ProvidersPageState extends State<ProvidersPage> {
         _p('Gemini', 'Gemini', enabled: true, models: 0),
         _p(l10n.providersPageSiliconFlowName, 'SiliconFlow', enabled: true, models: 0),
         _p('OpenRouter', 'OpenRouter', enabled: true, models: 0),
-        _p('Tensdaq', 'Tensdaq', enabled: true, models: 0),
+        _p('Tensdaq', 'Tensdaq', enabled: false, models: 0),
         _p('DeepSeek', 'DeepSeek', enabled: false, models: 0),
         _p(l10n.providersPageAliyunName, 'Aliyun', enabled: false, models: 0),
         _p(l10n.providersPageZhipuName, 'Zhipu AI', enabled: false, models: 0),
@@ -180,15 +194,22 @@ class _ProvidersPageState extends State<ProvidersPage> {
       _Provider(name: name, keyName: key, enabled: enabled, modelCount: models);
 }
 
-class _ProviderCard extends StatelessWidget {
+class _ProviderCard extends StatefulWidget {
   const _ProviderCard({required this.provider, this.compact = false});
   final _Provider provider;
   final bool compact;
 
   @override
+  State<_ProviderCard> createState() => _ProviderCardState();
+}
+
+class _ProviderCardState extends State<_ProviderCard> {
+  bool _pressed = false;
+
+  @override
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsProvider>();
-    final cfg = settings.getProviderConfig(provider.keyName, defaultName: provider.name);
+    final cfg = settings.getProviderConfig(widget.provider.keyName, defaultName: widget.provider.name);
     final cs = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final l10n = AppLocalizations.of(context)!;
@@ -202,35 +223,51 @@ class _ProviderCard extends StatelessWidget {
     final modelsBg = cs.primary.withOpacity(0.12);
     final modelsFg = cs.primary;
 
-    return Material(
-      color: bg,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
+    final pressOverlay = isDark
+        ? Colors.white.withOpacity(0.08)
+        : Colors.black.withOpacity(0.06);
+
+    return AnimatedScale(
+      duration: const Duration(milliseconds: 120),
+      curve: Curves.easeOutCubic,
+      scale: _pressed ? 0.98 : 1.0,
+      child: Material(
+        color: bg,
         borderRadius: BorderRadius.circular(16),
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => ProviderDetailPage(
-                keyName: provider.keyName,
-                displayName: provider.name,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          enableFeedback: false, // no system haptic/sound feedback on tap
+          splashFactory: NoSplash.splashFactory, // remove Material ripple
+          splashColor: Colors.transparent,
+          hoverColor: Colors.transparent,
+          overlayColor: MaterialStateProperty.resolveWith<Color?>(
+            (states) => states.contains(MaterialState.pressed) ? pressOverlay : null,
+          ),
+          onHighlightChanged: (pressed) => setState(() => _pressed = pressed),
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => ProviderDetailPage(
+                  keyName: widget.provider.keyName,
+                  displayName: widget.provider.name,
+                ),
               ),
-            ),
-          );
-        },
-        child: Stack(
-          children: [
-            Padding(
-              padding: EdgeInsets.fromLTRB(10, compact ? 10 : 12, 10, compact ? 8 : 12),
+            );
+          },
+          child: Stack(
+            children: [
+              Padding(
+              padding: EdgeInsets.fromLTRB(10, widget.compact ? 10 : 12, 10, widget.compact ? 8 : 12),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   _BrandAvatar(
-                    name: (cfg.name.isNotEmpty ? cfg.name : provider.keyName),
-                    size: compact ? 40 : 44,
+                    name: (cfg.name.isNotEmpty ? cfg.name : widget.provider.keyName),
+                    size: widget.compact ? 40 : 44,
                   ),
                   Text(
-                    (cfg.name.isNotEmpty ? cfg.name : provider.name),
+                    (cfg.name.isNotEmpty ? cfg.name : widget.provider.name),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
@@ -261,6 +298,7 @@ class _ProviderCard extends StatelessWidget {
           ],
         ),
       ),
+      )
     );
   }
 }
@@ -422,6 +460,66 @@ class _DragHandle extends StatelessWidget {
         child: Icon(Lucide.GripHorizontal, size: 24, color: cs.onSurface.withOpacity(0.7)),
       ),
       childWhenDragging: const SizedBox(width: 40, height: 40),
+    );
+  }
+}
+
+// Icon-only tactile icon button for AppBar: no ripple, scale + color on press, no haptics
+class _TactileIconButton extends StatefulWidget {
+  const _TactileIconButton({
+    required this.icon,
+    required this.color,
+    required this.onTap,
+    this.onLongPress,
+    this.semanticLabel,
+    this.size = 22,
+  });
+
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+  final VoidCallback? onLongPress;
+  final String? semanticLabel;
+  final double size;
+
+  @override
+  State<_TactileIconButton> createState() => _TactileIconButtonState();
+}
+
+class _TactileIconButtonState extends State<_TactileIconButton> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final base = widget.color;
+    final pressColor = base.withOpacity(0.7);
+    final icon = Icon(
+      widget.icon,
+      size: widget.size,
+      color: _pressed ? pressColor : base,
+      semanticLabel: widget.semanticLabel,
+    );
+
+    return Semantics(
+      button: true,
+      label: widget.semanticLabel,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapUp: (_) => setState(() => _pressed = false),
+        onTapCancel: () => setState(() => _pressed = false),
+        onTap: widget.onTap,
+        onLongPress: widget.onLongPress,
+        child: AnimatedScale(
+          scale: _pressed ? 0.95 : 1.0,
+          duration: const Duration(milliseconds: 100),
+          curve: Curves.easeOut,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+            child: icon,
+          ),
+        ),
+      ),
     );
   }
 }

@@ -18,6 +18,7 @@
   "settingsPageSearch": "搜索服务",
   "settingsPageTts": "语音服务",
   "settingsPageMcp": "MCP",
+  "settingsPageQuickPhrase": "快捷短语",
   "settingsPageDataSection": "数据设置",
   "settingsPageBackup": "数据备份",
   "settingsPageChatStorage": "聊天记录存储",
@@ -107,6 +108,44 @@
   "assistantEditGalleryErrorMessage": "无法打开相册，试试输入图片链接",
   "assistantEditGeneralErrorMessage": "发生错误，试试输入图片链接",
   "assistantEditSystemPromptTitle": "系统提示词",
+  "providerDetailPageMultiKeyModeTitle": "多Key模式",
+  "providerDetailPageManageKeysButton": "多Key管理",
+  "multiKeyPageTitle": "多Key管理",
+  "multiKeyPageDetect": "检测",
+  "multiKeyPageAdd": "添加",
+  "multiKeyPageAddHint": "请输入API Key（多个用逗号或空格分隔）",
+  "multiKeyPageImportedSnackbar": "已导入{n}个key",
+  "@multiKeyPageImportedSnackbar": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "multiKeyPagePleaseAddModel": "请先添加模型",
+  "multiKeyPageTotal": "总数",
+  "multiKeyPageNormal": "正常",
+  "multiKeyPageError": "错误",
+  "multiKeyPageAccuracy": "正确率",
+  "multiKeyPageStrategyTitle": "负载均衡策略",
+  "multiKeyPageStrategyRoundRobin": "轮询",
+  "multiKeyPageStrategyPriority": "优先级",
+  "multiKeyPageStrategyLeastUsed": "最少使用",
+  "multiKeyPageStrategyRandom": "随机",
+  "multiKeyPageNoKeys": "暂无Key",
+  "multiKeyPageStatusActive": "正常",
+  "multiKeyPageStatusDisabled": "已关闭",
+  "multiKeyPageStatusError": "错误",
+  "multiKeyPageStatusRateLimited": "限速",
+  "multiKeyPageEditAlias": "编辑别名",
+  "multiKeyPageEdit": "编辑",
+  "multiKeyPageKey": "API Key",
+  "multiKeyPagePriority": "优先级（1–10）",
+  "multiKeyPageDuplicateKeyWarning": "该 Key 已存在",
+  "multiKeyPageAlias": "别名",
+  "multiKeyPageCancel": "取消",
+  "multiKeyPageSave": "保存",
+  "multiKeyPageDelete": "删除",
   "assistantEditSystemPromptHint": "输入系统提示词…",
   "assistantEditAvailableVariables": "可用变量：",
   "assistantEditVariableDate": "日期",
@@ -149,12 +188,24 @@
   "assistantProviderSampleAssistantSystemPrompt": "你是{model_name}, 一个人工智能助手，乐意为用户提供准确，有益的帮助。现在时间是{cur_datetime}，用户设备语言为{locale}，时区为{timezone}，用户正在使用{device_info}，版本{system_version}。如果用户没有明确说明，请使用用户设备语言进行回复。",
   "@assistantProviderSampleAssistantSystemPrompt": {
     "placeholders": {
-      "model_name": {"type": "String"},
-      "cur_datetime": {"type": "String"},
-      "locale": {"type": "String"},
-      "timezone": {"type": "String"},
-      "device_info": {"type": "String"},
-      "system_version": {"type": "String"}
+      "model_name": {
+        "type": "String"
+      },
+      "cur_datetime": {
+        "type": "String"
+      },
+      "locale": {
+        "type": "String"
+      },
+      "timezone": {
+        "type": "String"
+      },
+      "device_info": {
+        "type": "String"
+      },
+      "system_version": {
+        "type": "String"
+      }
     }
   },
   "displaySettingsPageLanguageTitle": "应用语言",
@@ -167,7 +218,9 @@
   "homePageTranslateFailed": "翻译失败: {error}",
   "@homePageTranslateFailed": {
     "placeholders": {
-      "error": { "type": "String" }
+      "error": {
+        "type": "String"
+      }
     }
   },
   "imagePreviewSheetSaveImage": "保存图片",
@@ -175,7 +228,9 @@
   "imagePreviewSheetSaveFailed": "保存失败: {error}",
   "@imagePreviewSheetSaveFailed": {
     "placeholders": {
-      "error": { "type": "String" }
+      "error": {
+        "type": "String"
+      }
     }
   },
   "chatServiceDefaultConversationTitle": "新对话",
@@ -499,6 +554,7 @@
   "providerDetailPageModelsTab": "模型",
   "providerDetailPageNetworkTab": "网络代理",
   "providerDetailPageEnabledTitle": "是否启用",
+  "providerDetailPageManageSectionTitle": "管理",
   "providerDetailPageNameLabel": "名称",
   "providerDetailPageApiKeyHint": "留空则使用上层默认",
   "providerDetailPageHideTooltip": "隐藏",
@@ -714,8 +770,8 @@
   "searchServiceNameOllama": "Ollama",
   "searchServiceNameJina": "Jina",
   "generationInterrupted": "生成已中断",
-  "titleForLocale": "新对话"
-  ,"miniMapTitle": "迷你地图",
+  "titleForLocale": "新对话",
+  "miniMapTitle": "迷你地图",
   "miniMapTooltip": "迷你地图",
   "displaySettingsPageEnableDollarLatexTitle": "启用 $...$ 渲染",
   "displaySettingsPageEnableDollarLatexSubtitle": "将 $...$ 之间的内容按行内数学公式渲染",
@@ -738,5 +794,24 @@
   "chatInputBarQuickPhraseTooltip": "快捷短语",
   "assistantEditQuickPhraseDescription": "管理该助手的快捷短语。点击下方按钮添加或编辑短语。",
   "assistantEditManageQuickPhraseButton": "管理快捷短语",
-  "assistantEditAddQuickPhraseButton": "添加快捷短语"
+  "assistantEditAddQuickPhraseButton": "添加快捷短语",
+  "multiKeyPageDeleteSnackbarDeletedOne": "已删除 1 个 Key",
+  "multiKeyPageUndo": "撤回",
+  "multiKeyPageUndoRestored": "已撤回删除",
+  "multiKeyPageDeleteErrorsTooltip": "删除错误",
+  "multiKeyPageDeleteErrorsConfirmTitle": "删除所有错误的 Key？",
+  "multiKeyPageDeleteErrorsConfirmContent": "这将移除所有状态为错误的 Key。",
+  "multiKeyPageDeletedErrorsSnackbar": "已删除 {n} 个错误 Key",
+  "@multiKeyPageDeletedErrorsSnackbar": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "providerDetailPageProviderTypeTitle": "供应商类型",
+  "displaySettingsPageChatItemDisplayTitle": "聊天项显示",
+  "displaySettingsPageRenderingSettingsTitle": "渲染设置",
+  "displaySettingsPageBehaviorStartupTitle": "行为与启动",
+  "displaySettingsPageHapticsSettingsTitle": "触觉反馈"
 }
