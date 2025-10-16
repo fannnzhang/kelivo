@@ -1,67 +1,33 @@
-import 'dart:convert';
-import 'dart:io';
+import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-import 'package:archive/archive_io.dart';
-import 'package:xml/xml.dart';
-import 'package:flutter/services.dart';
-import 'package:read_pdf_text/read_pdf_text.dart';
+import '../../../src/rust/api/document_parser.dart' as document_parser;
 import '../../../utils/sandbox_path_resolver.dart';
 
 class DocumentTextExtractor {
-  static Future<String> extract({required String path, required String mime}) async {
-    try {
-      // Remap old iOS sandbox path if needed
-      final fixedPath = SandboxPathResolver.fix(path);
-      if (mime == 'application/pdf') {
-        try {
-          final text = await ReadPdfText.getPDFtext(fixedPath);
-          if (text.trim().isNotEmpty) return text;
-        } on PlatformException catch (e) {
-          return '[[Failed to read PDF: ${e.message ?? e.code}]]';
-        } on MissingPluginException catch (_) {
-          return '[[PDF text extraction plugin not available]]';
-        } catch (e) {
-          return '[[Failed to read PDF: $e]]';
-        }
-        return '[PDF] Unable to extract text from file.';
-      }
-      if (mime == 'application/msword') {
-        return '[[DOC format (.doc) not supported for text extraction]]';
-      }
-      if (mime == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-        return await _extractDocx(path);
-      }
-      // Fallback: read as text
-      final file = File(fixedPath);
-      final bytes = await file.readAsBytes();
-      return utf8.decode(bytes, allowMalformed: true);
-    } catch (e) {
-      return '[[Failed to read file: $e]]';
-    }
-  }
+  static const _unsupportedDocMessage =
+      '[[DOC format (.doc) not supported for text extraction]]';
 
-  static Future<String> _extractDocx(String path) async {
+  static Future<String> extract({
+    required String path,
+    required String mime,
+  }) async {
+    final fixedPath = SandboxPathResolver.fix(path);
     try {
-      final input = File(SandboxPathResolver.fix(path)).readAsBytesSync();
-      final archive = ZipDecoder().decodeBytes(input);
-      final docXml = archive.findFile('word/document.xml');
-      if (docXml == null) return '[DOCX] document.xml not found';
-      final xml = XmlDocument.parse(utf8.decode(docXml.content as List<int>));
-      final buffer = StringBuffer();
-      for (final p in xml.findAllElements('w:p')) {
-        final texts = p.findAllElements('w:t');
-        if (texts.isEmpty) {
-          buffer.writeln();
-          continue;
-        }
-        for (final t in texts) {
-          buffer.write(t.innerText);
-        }
-        buffer.writeln();
+      switch (mime) {
+        case 'application/pdf':
+          return await document_parser.extractTextFromPdf(path: fixedPath);
+        case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+        case 'application/vnd.ms-word.document.macroEnabled.12':
+          return await document_parser.extractTextFromDocx(path: fixedPath);
+        case 'application/msword':
+          return _unsupportedDocMessage;
+        default:
+          return await document_parser.readTextFallback(path: fixedPath);
       }
-      return buffer.toString();
-    } catch (e) {
-      return '[[Failed to parse DOCX: $e]]';
+    } on FrbException catch (err) {
+      return '[[Rust document parser error: $err]]';
+    } catch (err) {
+      return '[[Failed to read file: $err]]';
     }
   }
 }
