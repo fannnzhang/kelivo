@@ -24,6 +24,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../core/providers/settings_provider.dart';
 import '../../../core/providers/model_provider.dart';
+import '../../../shared/widgets/ios_tactile.dart';
 
 class ChatMessageWidget extends StatefulWidget {
   final ChatMessage message;
@@ -313,33 +314,39 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
               top: y,
               width: menuWidth,
               child: _AnimatedPopup(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: BackdropFilter(
-                    filter: ui.ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
+                child: DecoratedBox(
+                  // Draw border outside the clipped/blurred content to avoid corner clipping
+                  decoration: ShapeDecoration(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(
                         color: isDark
-                            ? const Color(0xFF1C1C1E).withOpacity(0.66)
-                            : Colors.white.withOpacity(0.66),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isDark
-                              ? Colors.white.withOpacity(0.08)
-                              : cs.outlineVariant.withOpacity(0.2),
-                          width: 1,
-                        ),
+                            ? Colors.white.withOpacity(0.08)
+                            : cs.outlineVariant.withOpacity(0.2),
+                        width: 1,
                       ),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                      _MenuItem(
-                        icon: Lucide.Copy,
-                        label: l10n.shareProviderSheetCopyButton,
-                        onTap: () async {
-                          Navigator.of(ctx).pop();
+                    ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: BackdropFilter(
+                      filter: ui.ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? const Color(0xFF1C1C1E).withOpacity(0.66)
+                              : Colors.white.withOpacity(0.66),
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                          _MenuItem(
+                            icon: Lucide.Copy,
+                            label: l10n.shareProviderSheetCopyButton,
+                            onTap: () async {
+                              Navigator.of(ctx).pop();
                           if (widget.onCopy != null) {
                             widget.onCopy!.call();
                           } else {
@@ -372,10 +379,11 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                         },
                       ),
                     ],
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
               ),
             ),
           )],
@@ -701,14 +709,24 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
             ),
           ),
           if (showUserActions || showVersionSwitcher) ...[
-            SizedBox(height: showUserActions ? 4 : 6),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
+            SizedBox(height: showUserActions ? 8 : 6),
+            Align(
+              alignment: Alignment.centerRight,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
                 if (showUserActions) ...[
-                  IconButton(
-                    icon: Icon(Lucide.Copy, size: 16),
-                    onPressed: widget.onCopy ?? () {
+              SizedBox(
+                width: 28,
+                height: 28,
+                child: Center(
+                  child: IosIconButton(
+                    size: 16,
+                    padding: EdgeInsets.all(4),
+                    icon: Lucide.Copy,
+                    onTap: widget.onCopy ?? () {
                       Clipboard.setData(ClipboardData(text: widget.message.content));
                       showAppSnackBar(
                         context,
@@ -716,26 +734,38 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                         type: NotificationType.success,
                       );
                     },
-                    visualDensity: VisualDensity.compact,
-                    iconSize: 16,
                   ),
-                  IconButton(
-                    icon: Icon(Lucide.RefreshCw, size: 16),
-                    onPressed: widget.onResend,
-                    tooltip: l10n.chatMessageWidgetResendTooltip,
-                    visualDensity: VisualDensity.compact,
-                    iconSize: 16,
+                ),
+              ),
+              const SizedBox(width: 6),
+              SizedBox(
+                width: 28,
+                height: 28,
+                child: Center(
+                  child: IosIconButton(
+                    size: 16,
+                    padding: EdgeInsets.all(4),
+                    icon: Lucide.RefreshCw,
+                    onTap: widget.onResend,
                   ),
-                  IconButton(
-                    icon: Icon(Lucide.Ellipsis, size: 16),
-                    onPressed: widget.onMore,
-                    tooltip: l10n.chatMessageWidgetMoreTooltip,
-                    visualDensity: VisualDensity.compact,
-                    iconSize: 16,
+                ),
+              ),
+              const SizedBox(width: 6),
+              SizedBox(
+                width: 28,
+                height: 28,
+                child: Center(
+                  child: IosIconButton(
+                    size: 16,
+                    padding: EdgeInsets.all(4),
+                    icon: Lucide.Ellipsis,
+                    onTap: widget.onMore,
                   ),
+                ),
+              ),
                 ],
                 if (showVersionSwitcher) ...[
-                  if (showUserActions) const SizedBox(width: 8),
+                  if (showUserActions) const SizedBox(width: 6),
                   _BranchSelector(
                     index: widget.versionIndex ?? 0,
                     total: widget.versionCount ?? 1,
@@ -743,7 +773,9 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                     onNext: widget.onNextVersion,
                   ),
                 ],
-              ],
+                  ],
+                ),
+              ),
             ),
           ],
         ],
@@ -1101,56 +1133,87 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
           const SizedBox(height: 8),
           Row(
             children: [
-              IconButton(
-                icon: Icon(Lucide.Copy, size: 16),
-                onPressed: widget.onCopy ?? () {
-                  Clipboard.setData(ClipboardData(text: widget.message.content));
-                  showAppSnackBar(
-                    context,
-                    message: l10n.chatMessageWidgetCopiedToClipboard,
-                    type: NotificationType.success,
-                  );
-                },
-                visualDensity: VisualDensity.compact,
-                iconSize: 16,
-              ),
-              IconButton(
-                icon: Icon(Lucide.RefreshCw, size: 16),
-                onPressed: widget.onRegenerate,
-                tooltip: l10n.chatMessageWidgetRegenerateTooltip,
-                visualDensity: VisualDensity.compact,
-                iconSize: 16,
-              ),
-              Consumer<TtsProvider>(
-                builder: (context, tts, _) => IconButton(
-                  icon: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 200),
-                    transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: FadeTransition(opacity: anim, child: child)),
-                    child: Icon(
-                      tts.isSpeaking ? Lucide.CircleStop : Lucide.Volume2,
-                      key: ValueKey(tts.isSpeaking ? 'stop' : 'speak'),
-                      size: 16,
-                    ),
+              SizedBox(
+                width: 28,
+                height: 28,
+                child: Center(
+                  child: IosIconButton(
+                    size: 16,
+                    padding: EdgeInsets.all(4),
+                    icon: Lucide.Copy,
+                    onTap: widget.onCopy ?? () {
+                      Clipboard.setData(ClipboardData(text: widget.message.content));
+                      showAppSnackBar(
+                        context,
+                        message: l10n.chatMessageWidgetCopiedToClipboard,
+                        type: NotificationType.success,
+                      );
+                    },
                   ),
-                  onPressed: widget.onSpeak,
-                  tooltip: tts.isSpeaking ? l10n.chatMessageWidgetStopTooltip : l10n.chatMessageWidgetSpeakTooltip,
-                  visualDensity: VisualDensity.compact,
-                  iconSize: 16,
                 ),
               ),
-              IconButton(
-                icon: Icon(Lucide.Languages, size: 16),
-                onPressed: widget.onTranslate,
-                tooltip: l10n.chatMessageWidgetTranslateTooltip,
-                visualDensity: VisualDensity.compact,
-                iconSize: 16,
+              const SizedBox(width: 6),
+              SizedBox(
+                width: 28,
+                height: 28,
+                child: Center(
+                  child: IosIconButton(
+                    size: 16,
+                    padding: EdgeInsets.all(4),
+                    icon: Lucide.RefreshCw,
+                    onTap: widget.onRegenerate,
+                  ),
+                ),
               ),
-              IconButton(
-                icon: Icon(Lucide.Ellipsis, size: 16),
-                onPressed: widget.onMore,
-                tooltip: l10n.chatMessageWidgetMoreTooltip,
-                visualDensity: VisualDensity.compact,
-                iconSize: 16,
+              const SizedBox(width: 6),
+              Consumer<TtsProvider>(
+                builder: (context, tts, _) => SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: Center(
+                    child: IosIconButton(
+                      size: 16,
+                      padding: EdgeInsets.all(4),
+                      onTap: widget.onSpeak,
+                      builder: (color) => AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: FadeTransition(opacity: anim, child: child)),
+                        child: Icon(
+                          tts.isSpeaking ? Lucide.CircleStop : Lucide.Volume2,
+                          key: ValueKey(tts.isSpeaking ? 'stop' : 'speak'),
+                          size: 16,
+                          color: color,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              SizedBox(
+                width: 28,
+                height: 28,
+                child: Center(
+                  child: IosIconButton(
+                    size: 16,
+                    padding: EdgeInsets.all(4),
+                    icon: Lucide.Languages,
+                    onTap: widget.onTranslate,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              SizedBox(
+                width: 28,
+                height: 28,
+                child: Center(
+                  child: IosIconButton(
+                    size: 16,
+                    padding: EdgeInsets.all(4),
+                    icon: Lucide.Ellipsis,
+                    onTap: widget.onMore,
+                  ),
+                ),
               ),
               if ((widget.versionCount ?? 1) > 1) ...[
                 const SizedBox(width: 6),
@@ -1442,18 +1505,38 @@ class _BranchSelector extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        InkWell(
-          onTap: canPrev ? onPrev : null,
-          borderRadius: BorderRadius.circular(6),
-          child: Icon(Lucide.ChevronLeft, size: 16, color: canPrev ? cs.onSurface : cs.onSurface.withOpacity(0.35)),
+        SizedBox(
+          width: 28,
+          height: 28,
+          child: Center(
+            child: IosIconButton(
+              size: 16,
+              enabled: canPrev,
+              color: cs.onSurface,
+              icon: Lucide.ChevronLeft,
+              onTap: canPrev ? onPrev : null,
+            ),
+          ),
         ),
-        const SizedBox(width: 6),
-        Text('${index + 1}/$total', style: TextStyle(fontSize: 12, color: cs.onSurface.withOpacity(0.8), fontWeight: FontWeight.w600)),
-        const SizedBox(width: 6),
-        InkWell(
-          onTap: canNext ? onNext : null,
-          borderRadius: BorderRadius.circular(6),
-          child: Icon(Lucide.ChevronRight, size: 16, color: canNext ? cs.onSurface : cs.onSurface.withOpacity(0.35)),
+        SizedBox(
+          width: 28,
+          height: 28,
+          child: Center(
+            child: Text('${index + 1}/$total', style: TextStyle(fontSize: 12, color: cs.onSurface.withOpacity(0.8), fontWeight: FontWeight.w500)),
+          ),
+        ),
+        SizedBox(
+          width: 28,
+          height: 28,
+          child: Center(
+            child: IosIconButton(
+              size: 16,
+              enabled: canNext,
+              color: cs.onSurface,
+              icon: Lucide.ChevronRight,
+              onTap: canNext ? onNext : null,
+            ),
+          ),
         ),
       ],
     );
@@ -1476,7 +1559,7 @@ class _LoadingIndicatorState extends State<_LoadingIndicator>
     super.initState();
     // Smoother, symmetric breathing with reverse to avoid jump cuts
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 1100),
+      duration: const Duration(milliseconds: 800),
       vsync: this,
     )..repeat(reverse: true);
 

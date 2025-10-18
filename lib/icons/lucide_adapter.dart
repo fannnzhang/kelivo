@@ -113,4 +113,14 @@ class Lucide {
   static const IconData CaseSensitive = lucide.LucideIcons.caseSensitive;
   static const IconData TextInitial = lucide.LucideIcons.textInitial;
   static const IconData eclipse = lucide.LucideIcons.eclipse;
+  static const IconData ListOrdered = lucide.LucideIcons.listOrdered;
+  static const IconData circleDot = lucide.LucideIcons.circleCheck;
+  static const IconData cloudDownload = lucide.LucideIcons.cloudDownload;
+  static const IconData Thermometer = lucide.LucideIcons.thermometer;
+  static const IconData Wand2 = lucide.LucideIcons.wand;
+  static const IconData MessagesSquare = lucide.LucideIcons.messageSquare;
+  static const IconData CheckSquare = lucide.LucideIcons.squareCheck;
+  static const IconData circleArrowUp = lucide.LucideIcons.circleArrowUp;
+  static const IconData circleCheckBig = lucide.LucideIcons.circleCheckBig;
+  static const IconData checkCheck = lucide.LucideIcons.checkCheck;
 }

@@ -308,6 +308,13 @@
   "backupPageNoBackups": "No backups",
   "backupPageRestoreTooltip": "Restore",
   "backupPageDeleteTooltip": "Delete",
+  "backupPageBackupManagement": "Backup Management",
+  "backupPageWebDavBackup": "WebDAV Backup",
+  "backupPageWebDavServerSettings": "WebDAV Server Settings",
+  "backupPageSave": "Save",
+  "backupPageBackupNow": "Backup Now",
+  "backupPageLocalBackup": "Local Backup",
+  "backupPageImportFromCherryStudio": "Import from Cherry Studio",
   "chatHistoryPageTitle": "Chat History",
   "chatHistoryPageSearchTooltip": "Search",
   "chatHistoryPageDeleteAllTooltip": "Delete All",
@@ -896,6 +903,7 @@
   "aboutPageSystem": "System",
   "aboutPageWebsite": "Website",
   "aboutPageLicense": "License",
+  "aboutPageJoinDiscord": "Join us on Discord",
   "displaySettingsPageShowUserAvatarTitle": "Show User Avatar",
   "displaySettingsPageShowUserAvatarSubtitle": "Display user avatar in chat messages",
   "displaySettingsPageShowUserNameTimestampTitle": "Show User Name & Timestamp",
@@ -1033,5 +1041,21 @@
   "displaySettingsPageChatItemDisplayTitle": "Chat item display",
   "displaySettingsPageRenderingSettingsTitle": "Rendering settings",
   "displaySettingsPageBehaviorStartupTitle": "Behavior & startup",
-  "displaySettingsPageHapticsSettingsTitle": "Haptics"
+  "displaySettingsPageHapticsSettingsTitle": "Haptics",
+  "assistantSettingsNoPromptPlaceholder": "No prompt yet",
+  "providersPageMultiSelectTooltip": "Multi-select"
+  ,
+  "providersPageDeleteSelectedConfirmContent": "Delete selected providers? This cannot be undone.",
+  "providersPageDeleteSelectedSnackbar": "Deleted selected providers",
+  "providersPageExportSelectedTitle": "Export {count} providers",
+  "@providersPageExportSelectedTitle": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "providersPageExportCopyButton": "Copy",
+  "providersPageExportShareButton": "Share",
+  "providersPageExportCopiedSnackbar": "Copied export code",
+  "providersPageDeleteAction": "Delete",
+  "providersPageExportAction": "Export"
 }

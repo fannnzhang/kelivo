@@ -778,6 +778,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupPageDeleteTooltip => 'Delete';
 
   @override
+  String get backupPageBackupManagement => 'Backup Management';
+
+  @override
+  String get backupPageWebDavBackup => 'WebDAV Backup';
+
+  @override
+  String get backupPageWebDavServerSettings => 'WebDAV Server Settings';
+
+  @override
+  String get backupPageSave => 'Save';
+
+  @override
+  String get backupPageBackupNow => 'Backup Now';
+
+  @override
+  String get backupPageLocalBackup => 'Local Backup';
+
+  @override
+  String get backupPageImportFromCherryStudio => 'Import from Cherry Studio';
+
+  @override
   String get chatHistoryPageTitle => 'Chat History';
 
   @override
@@ -2107,6 +2128,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aboutPageLicense => 'License';
 
   @override
+  String get aboutPageJoinDiscord => 'Join us on Discord';
+
+  @override
   String get displaySettingsPageShowUserAvatarTitle => 'Show User Avatar';
 
   @override
@@ -2479,4 +2503,38 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get displaySettingsPageHapticsSettingsTitle => 'Haptics';
+
+  @override
+  String get assistantSettingsNoPromptPlaceholder => 'No prompt yet';
+
+  @override
+  String get providersPageMultiSelectTooltip => 'Multi-select';
+
+  @override
+  String get providersPageDeleteSelectedConfirmContent =>
+      'Delete selected providers? This cannot be undone.';
+
+  @override
+  String get providersPageDeleteSelectedSnackbar =>
+      'Deleted selected providers';
+
+  @override
+  String providersPageExportSelectedTitle(int count) {
+    return 'Export $count providers';
+  }
+
+  @override
+  String get providersPageExportCopyButton => 'Copy';
+
+  @override
+  String get providersPageExportShareButton => 'Share';
+
+  @override
+  String get providersPageExportCopiedSnackbar => 'Copied export code';
+
+  @override
+  String get providersPageDeleteAction => 'Delete';
+
+  @override
+  String get providersPageExportAction => 'Export';
 }

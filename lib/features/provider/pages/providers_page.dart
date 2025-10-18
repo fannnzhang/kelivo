@@ -5,11 +5,19 @@ import '../../../icons/lucide_adapter.dart';
 import 'provider_detail_page.dart';
 import '../widgets/import_provider_sheet.dart';
 import '../widgets/add_provider_sheet.dart';
-import 'package:reorderable_grid_view/reorderable_grid_view.dart';
+// grid reorder removed in favor of iOS-style list reordering
 import 'package:provider/provider.dart';
 import '../../../core/providers/settings_provider.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../shared/widgets/snackbar.dart';
+import '../../../core/services/haptics.dart';
+import '../widgets/share_provider_sheet.dart';
+import '../../../core/providers/assistant_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:flutter/services.dart';
+import 'package:pretty_qr_code/pretty_qr_code.dart';
+import 'dart:ui' as ui show ImageFilter;
+import '../../../shared/widgets/ios_tile_button.dart';
 
 class ProvidersPage extends StatefulWidget {
   const ProvidersPage({super.key});
@@ -21,6 +29,8 @@ class ProvidersPage extends StatefulWidget {
 class _ProvidersPageState extends State<ProvidersPage> {
   List<_Provider>? _items;
   final Set<String> _settleKeys = {};
+  bool _selectMode = false;
+  final Set<String> _selected = {};
 
   @override
   Widget build(BuildContext context) {
@@ -73,9 +83,25 @@ class _ProvidersPageState extends State<ProvidersPage> {
         title: Text(l10n.providersPageTitle),
         actions: [
           Tooltip(
+            message: _selectMode ? l10n.searchServicesPageDone : l10n.providersPageMultiSelectTooltip,
+            child: _TactileIconButton(
+              icon: _selectMode ? Lucide.Check : Lucide.circleDot,
+              color: cs.onSurface,
+              size: 22,
+              onTap: () {
+                setState(() {
+                  if (_selectMode) {
+                    _selected.clear();
+                  }
+                  _selectMode = !_selectMode;
+                });
+              },
+            ),
+          ),
+          Tooltip(
             message: l10n.providersPageImportTooltip,
             child: _TactileIconButton(
-              icon: Lucide.Import,
+              icon: Lucide.cloudDownload,
               color: cs.onSurface,
               size: 22,
               onTap: () async {
@@ -109,61 +135,80 @@ class _ProvidersPageState extends State<ProvidersPage> {
           const SizedBox(width: 12),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(10),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final tileHeight = 148.0;
-            const spacing = 10.0;
-            final tileWidth = (constraints.maxWidth - spacing) / 2;
-            final ratio = tileWidth / tileHeight;
-            return ReorderableGridView.count(
-              crossAxisCount: 2,
-              mainAxisSpacing: spacing,
-              crossAxisSpacing: spacing,
-              childAspectRatio: ratio,
-              dragStartDelay: const Duration(milliseconds: 380),
-              onReorder: (oldIndex, newIndex) async {
-                final moved = items[oldIndex];
-                final mut = List<_Provider>.of(items);
-                final item = mut.removeAt(oldIndex);
-                mut.insert(newIndex, item);
-                setState(() => _settleKeys.add(moved.keyName));
-                await context.read<SettingsProvider>().setProvidersOrder([
-                  for (final p in mut) p.keyName
-                ]);
-                Future.delayed(const Duration(milliseconds: 220), () {
-                  if (!mounted) return;
-                  setState(() => _settleKeys.remove(moved.keyName));
+      body: Stack(
+        children: [
+          _ProvidersList(
+            items: items,
+            selectMode: _selectMode,
+            selectedKeys: _selected,
+            onToggleSelect: (key) {
+              setState(() {
+                if (_selected.contains(key)) {
+                  _selected.remove(key);
+                } else {
+                  _selected.add(key);
+                }
+              });
+            },
+            onReorder: (oldIndex, newIndex) async {
+              // Normalize newIndex because Flutter passes the index after removal
+              if (newIndex > oldIndex) newIndex -= 1;
+              final moved = items[oldIndex];
+              final mut = List<_Provider>.of(items);
+              final item = mut.removeAt(oldIndex);
+              mut.insert(newIndex, item);
+              setState(() => _settleKeys.add(moved.keyName));
+              await context.read<SettingsProvider>().setProvidersOrder([
+                for (final p in mut) p.keyName
+              ]);
+              Future.delayed(const Duration(milliseconds: 220), () {
+                if (!mounted) return;
+                setState(() => _settleKeys.remove(moved.keyName));
+              });
+            },
+            settlingKeys: _settleKeys,
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: _SelectionBar(
+              visible: _selectMode,
+              count: _selected.length,
+              total: items.length,
+              onExport: _onExportSelected,
+              onDelete: _onDeleteSelected,
+              onSelectAll: () {
+                setState(() {
+                  // Select all deletable (non-built-in) providers
+                  final baseKeys = {for (final p in base) p.keyName};
+                  final deletable = [for (final p in items) if (!baseKeys.contains(p.keyName)) p.keyName];
+                  final allSelected = deletable.isNotEmpty && deletable.every(_selected.contains) && _selected.length == deletable.length;
+                  _selected.removeWhere((k) => !deletable.contains(k));
+                  if (allSelected) {
+                    // Unselect all deletable
+                    for (final k in deletable) { _selected.remove(k); }
+                  } else {
+                    // Select all deletable
+                    _selected
+                      ..removeWhere((k) => !deletable.contains(k))
+                      ..addAll(deletable);
+                  }
                 });
               },
-              dragWidgetBuilder: (index, child) => Opacity(
-                opacity: 0.95,
-                child: Transform.scale(scale: 0.94, child: child),
-              ),
-              children: [
-                for (int i = 0; i < items.length; i++)
-                  KeyedSubtree(
-                    key: ValueKey(items[i].keyName),
-                    child: _SettleAnim(
-                      active: _settleKeys.contains(items[i].keyName),
-                      child: _ProviderCard(provider: items[i], compact: true),
-                    ),
-                  ),
-              ],
-            );
-          },
-        ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   List<_Provider> _providers({required AppLocalizations l10n}) => [
-        _p('KelivoIN', 'KelivoIN', enabled: true, models: 0),
         _p('OpenAI', 'OpenAI', enabled: true, models: 0),
-        _p('Gemini', 'Gemini', enabled: true, models: 0),
         _p(l10n.providersPageSiliconFlowName, 'SiliconFlow', enabled: true, models: 0),
+        _p('Gemini', 'Gemini', enabled: true, models: 0),
         _p('OpenRouter', 'OpenRouter', enabled: true, models: 0),
+        _p('KelivoIN', 'KelivoIN', enabled: true, models: 0),
         _p('Tensdaq', 'Tensdaq', enabled: false, models: 0),
         _p('DeepSeek', 'DeepSeek', enabled: false, models: 0),
         _p(l10n.providersPageAliyunName, 'Aliyun', enabled: false, models: 0),
@@ -192,115 +237,626 @@ class _ProvidersPageState extends State<ProvidersPage> {
 
   _Provider _p(String name, String key, {required bool enabled, required int models}) =>
       _Provider(name: name, keyName: key, enabled: enabled, modelCount: models);
+
+  Future<void> _onExportSelected() async {
+    if (_selected.isEmpty) return;
+    final keys = _selected.toList(growable: false);
+    if (keys.length == 1) {
+      await showShareProviderSheet(context, keys.first);
+      return;
+    }
+    await _showMultiExportSheet(context, keys);
+  }
+
+  Future<void> _onDeleteSelected() async {
+    if (_selected.isEmpty) return;
+    final l10n = AppLocalizations.of(context)!;
+    // Skip built-in providers (default ones)
+    final builtInKeys = {for (final p in _providers(l10n: l10n)) p.keyName};
+    final keysToDelete = _selected.where((k) => !builtInKeys.contains(k)).toList(growable: false);
+
+    if (keysToDelete.isEmpty) {
+      // Nothing deletable selected
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('${l10n.providerDetailPageDeleteProviderTitle} (${keysToDelete.length})'),
+        content: Text(l10n.providersPageDeleteSelectedConfirmContent),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(l10n.providerDetailPageCancelButton)),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(true), child: Text(l10n.providerDetailPageDeleteButton, style: const TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      // 尽可能复用 ProviderDetailPage 删除前的清理逻辑：清理引用该 provider 的助手模型选择
+      try {
+        final ap = context.read<AssistantProvider>();
+        for (final a in ap.assistants) {
+          if (keysToDelete.contains(a.chatModelProvider)) {
+            await ap.updateAssistant(a.copyWith(clearChatModel: true));
+          }
+        }
+      } catch (_) {}
+      final sp = context.read<SettingsProvider>();
+      for (final k in keysToDelete) {
+        await sp.removeProviderConfig(k);
+      }
+      if (!mounted) return;
+      setState(() {
+        _selected.clear();
+        _selectMode = false;
+      });
+      showAppSnackBar(context, message: l10n.providersPageDeleteSelectedSnackbar, type: NotificationType.success);
+    } catch (_) {}
+  }
 }
 
-class _ProviderCard extends StatefulWidget {
-  const _ProviderCard({required this.provider, this.compact = false});
-  final _Provider provider;
-  final bool compact;
-
-  @override
-  State<_ProviderCard> createState() => _ProviderCardState();
-}
-
-class _ProviderCardState extends State<_ProviderCard> {
-  bool _pressed = false;
+// iOS-style providers list (reorderable by long-press)
+class _ProvidersList extends StatelessWidget {
+  const _ProvidersList({
+    required this.items,
+    required this.onReorder,
+    required this.settlingKeys,
+    required this.selectMode,
+    required this.selectedKeys,
+    required this.onToggleSelect,
+  });
+  final List<_Provider> items;
+  final void Function(int oldIndex, int newIndex) onReorder;
+  final Set<String> settlingKeys;
+  final bool selectMode;
+  final Set<String> selectedKeys;
+  final void Function(String key) onToggleSelect;
 
   @override
   Widget build(BuildContext context) {
-    final settings = context.watch<SettingsProvider>();
-    final cfg = settings.getProviderConfig(widget.provider.keyName, defaultName: widget.provider.name);
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final bg = isDark ? Colors.white10 : Colors.white.withOpacity(0.96);
+    final borderColor = cs.outlineVariant.withOpacity(isDark ? 0.08 : 0.06);
+
+    // Adapt height: wrap to content if short; flush to bottom if long
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final media = MediaQuery.of(context);
+          final safeBottom = media.padding.bottom;
+          final bottomGapIfFlush = safeBottom + 16.0; // leave room above system bar
+
+          final maxH = constraints.hasBoundedHeight ? constraints.maxHeight : double.infinity;
+          // Estimate row height: avatar(22) + vertical paddings(11*2) ~= 44
+          const double rowH = 44.0;
+          const double dividerH = 6.0; // _iosDivider height
+          const double listPadV = 8.0; // ReorderableListView vertical padding
+          final int n = items.length;
+          final double baseContentH = n == 0 ? 0.0 : (n * rowH + (n - 1) * dividerH + listPadV);
+          // Decide if we should treat it as reaching bottom (considering the bottom gap we will add)
+          final bool reachesBottom = maxH.isFinite &&
+              (baseContentH >= maxH - 0.5 || (baseContentH + bottomGapIfFlush) >= maxH - 0.5);
+          final double effectiveContentH = baseContentH + (reachesBottom ? bottomGapIfFlush : 0.0);
+          final double containerH = maxH.isFinite ? (effectiveContentH.clamp(0.0, maxH)).toDouble() : effectiveContentH;
+
+          return Container(
+            height: containerH.isFinite ? containerH : null,
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.only(
+                topLeft: const Radius.circular(12),
+                topRight: const Radius.circular(12),
+                // If not reaching bottom, use rounded corners; if reaching bottom, flush
+                bottomLeft: Radius.circular(reachesBottom ? 0 : 12),
+                bottomRight: Radius.circular(reachesBottom ? 0 : 12),
+              ),
+              border: Border.all(color: borderColor, width: 0.6),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: ReorderableListView.builder(
+              padding: EdgeInsets.only(top: 4, bottom: reachesBottom ? bottomGapIfFlush : 4),
+              itemCount: items.length,
+              onReorder: onReorder,
+              buildDefaultDragHandles: false,
+              proxyDecorator: (child, index, animation) => Opacity(
+                opacity: 0.95,
+                child: Transform.scale(scale: 0.98, child: child),
+              ),
+              itemBuilder: (context, index) {
+                final p = items[index];
+                return KeyedSubtree(
+                  key: ValueKey(p.keyName),
+                  child: _SettleAnim(
+                    active: settlingKeys.contains(p.keyName),
+                    child: _ProviderRow(
+                      provider: p,
+                      index: index,
+                      total: items.length,
+                      selectMode: selectMode,
+                      selected: selectedKeys.contains(p.keyName),
+                      onToggleSelect: onToggleSelect,
+                    ),
+                  ),
+                );
+              },
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ProviderRow extends StatelessWidget {
+  const _ProviderRow({
+    required this.provider,
+    required this.index,
+    required this.total,
+    required this.selectMode,
+    required this.selected,
+    required this.onToggleSelect,
+  });
+  final _Provider provider;
+  final int index;
+  final int total;
+  final bool selectMode;
+  final bool selected;
+  final void Function(String key) onToggleSelect;
+
+  @override
+  Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final l10n = AppLocalizations.of(context)!;
+    final settings = context.watch<SettingsProvider>();
+    final cfg = settings.getProviderConfig(provider.keyName, defaultName: provider.name);
     final enabled = cfg.enabled;
-    final bg = enabled
-        ? (isDark ? Colors.white12 : const Color(0xFFF7F7F9))
-        : (isDark ? cs.errorContainer.withOpacity(0.30) : cs.errorContainer.withOpacity(0.25));
+    final l10n = AppLocalizations.of(context)!;
 
     final statusBg = enabled ? Colors.green.withOpacity(0.12) : Colors.orange.withOpacity(0.15);
-    final statusFg = enabled ? Colors.green.shade700 : Colors.orange.shade700;
-    final modelsBg = cs.primary.withOpacity(0.12);
-    final modelsFg = cs.primary;
+    final statusFg = enabled ? Colors.green : Colors.orange;
 
-    final pressOverlay = isDark
-        ? Colors.white.withOpacity(0.08)
-        : Colors.black.withOpacity(0.06);
+    final isFirst = index == 0;
+    final isLast = index == total - 1;
 
-    return AnimatedScale(
-      duration: const Duration(milliseconds: 120),
-      curve: Curves.easeOutCubic,
-      scale: _pressed ? 0.98 : 1.0,
-      child: Material(
-        color: bg,
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          enableFeedback: false, // no system haptic/sound feedback on tap
-          splashFactory: NoSplash.splashFactory, // remove Material ripple
-          splashColor: Colors.transparent,
-          hoverColor: Colors.transparent,
-          overlayColor: MaterialStateProperty.resolveWith<Color?>(
-            (states) => states.contains(MaterialState.pressed) ? pressOverlay : null,
-          ),
-          onHighlightChanged: (pressed) => setState(() => _pressed = pressed),
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => ProviderDetailPage(
-                  keyName: widget.provider.keyName,
-                  displayName: widget.provider.name,
-                ),
+    final row = _TactileRow(
+      onTap: () {
+        if (selectMode) {
+          Haptics.light();
+          onToggleSelect(provider.keyName);
+        } else {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => ProviderDetailPage(
+                keyName: provider.keyName,
+                displayName: provider.name,
               ),
-            );
-          },
-          child: Stack(
-            children: [
-              Padding(
-              padding: EdgeInsets.fromLTRB(10, widget.compact ? 10 : 12, 10, widget.compact ? 8 : 12),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  _BrandAvatar(
-                    name: (cfg.name.isNotEmpty ? cfg.name : widget.provider.keyName),
-                    size: widget.compact ? 40 : 44,
+            ),
+          );
+        }
+      },
+      pressedScale: 1.00, // no scale per spec
+      haptics: false,
+      builder: (pressed) {
+        final base = cs.onSurface.withOpacity(0.9);
+        return _AnimatedPressColor(
+          pressed: pressed,
+          base: base,
+          builder: (color) {
+            final rowContent = Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+              child: AnimatedSize(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOutCubic,
+                child: Row(
+                  children: [
+                  // Animated appear of select dot area with width transition
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    curve: Curves.easeOutCubic,
+                    width: selectMode ? 28 : 0,
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 150),
+                      opacity: selectMode ? 1.0 : 0.0,
+                      child: Align(alignment: Alignment.centerLeft, child: _SelectDot(selected: selected)),
+                    ),
                   ),
-                  Text(
-                    (cfg.name.isNotEmpty ? cfg.name : widget.provider.name),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  if (selectMode) const SizedBox(width: 4),
+                  SizedBox(width: 36, child: Center(child: _BrandAvatar(name: (cfg.name.isNotEmpty ? cfg.name : provider.keyName), size: 22))),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      (cfg.name.isNotEmpty ? cfg.name : provider.name),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 15, color: color, fontWeight: FontWeight.w600),
+                    ),
                   ),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: _Pill(
-                            text: enabled ? l10n.providersPageEnabledStatus : l10n.providersPageDisabledStatus,
-                            bg: statusBg,
-                            fg: statusFg,
-                          ),
-                        ),
-                      ),
-                      _Pill(
-                        text: '${cfg.models.length}${l10n.providersPageModelsCountSingleSuffix}',
-                        bg: modelsBg,
-                        fg: modelsFg,
-                      ),
-                    ],
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: statusBg,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      enabled ? l10n.providersPageEnabledStatus : l10n.providersPageDisabledStatus,
+                      style: TextStyle(fontSize: 11, color: statusFg),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 150),
+                    switchInCurve: Curves.easeOut,
+                    switchOutCurve: Curves.easeOut,
+                    transitionBuilder: (child, anim) => FadeTransition(opacity: anim, child: ScaleTransition(scale: anim, child: child)),
+                    child: selectMode
+                        ? const SizedBox.shrink(key: ValueKey('none'))
+                        : Icon(Lucide.ChevronRight, size: 16, color: color, key: const ValueKey('chev')),
                   ),
                 ],
               ),
-            ),
-            // No explicit drag handle; whole card can be long-pressed to drag.
-          ],
-        ),
+              ));
+
+            Widget line = KeyedSubtree(key: ValueKey('row-$index'), child: rowContent);
+            if (!selectMode) {
+              line = ReorderableDelayedDragStartListener(index: index, child: line);
+            }
+            return Column(children: [line, if (!isLast) _iosDivider(context)]);
+          },
+        );
+      },
+    );
+
+    // Return row directly; container card background is provided by the wrapper
+    // so dragged-out slot shows card color instead of page background.
+    return row;
+  }
+}
+
+class _SelectDot extends StatelessWidget {
+  const _SelectDot({required this.selected});
+  final bool selected;
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    if (selected) {
+      return Container(
+        width: 20,
+        height: 20,
+        decoration: BoxDecoration(color: cs.primary, shape: BoxShape.circle),
+        alignment: Alignment.center,
+        child: Icon(Lucide.Check, size: 13, color: cs.onPrimary),
+      );
+    }
+    return Container(
+      width: 20,
+      height: 20,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: cs.onSurface.withOpacity(0.35), width: 1.6),
       ),
-      )
     );
   }
+}
+
+class _SelectionBar extends StatelessWidget {
+  const _SelectionBar({
+    required this.visible,
+    required this.count,
+    required this.total,
+    required this.onExport,
+    required this.onDelete,
+    required this.onSelectAll,
+  });
+  final bool visible;
+  final int count;
+  final int total;
+  final VoidCallback onExport;
+  final VoidCallback onDelete;
+  final VoidCallback onSelectAll;
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final cs = Theme.of(context).colorScheme;
+    return AnimatedSlide(
+      offset: visible ? Offset.zero : const Offset(0, 1),
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      child: AnimatedOpacity(
+        opacity: visible ? 1.0 : 0.0,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+        child: IgnorePointer(
+          ignoring: !visible,
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 46),
+              child: Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _GlassCircleButton(
+                      icon: Lucide.Trash2,
+                      color: const Color(0xFFFF3B30),
+                      semanticLabel: l10n.providersPageDeleteAction,
+                      onTap: onDelete,
+                    ),
+                    const SizedBox(width: 14),
+                    _GlassCircleButton(
+                      icon: Lucide.checkCheck,
+                      color: cs.primary,
+                      semanticLabel: null,
+                      onTap: onSelectAll,
+                    ),
+                    const SizedBox(width: 14),
+                    _GlassCircleButton(
+                      icon: Lucide.Share2,
+                      color: cs.primary,
+                      semanticLabel: l10n.providersPageExportAction,
+                      onTap: onExport,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CapsuleButton extends StatefulWidget {
+  const _CapsuleButton({required this.label, required this.icon, required this.color, required this.onTap, this.outlined = false});
+  final String label;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+  final bool outlined;
+  @override
+  State<_CapsuleButton> createState() => _CapsuleButtonState();
+}
+
+class _CapsuleButtonState extends State<_CapsuleButton> {
+  bool _pressed = false;
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    // iOS glass style: grey border + frosted background; keep icon/label tinted by provided color
+    final glassBase = isDark ? Colors.black.withOpacity(0.06) : Colors.white.withOpacity(0.65);
+    final overlay = isDark ? Colors.black.withOpacity(0.06) : Colors.black.withOpacity(0.05);
+    final tileColor = _pressed ? Color.alphaBlend(overlay, glassBase) : glassBase;
+    final borderColor = cs.outlineVariant.withOpacity(isDark ? 0.35 : 0.40); // subtle grey border
+    final fg = widget.color; // use provided color for content only
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) => setState(() => _pressed = false),
+      onTapCancel: () => setState(() => _pressed = false),
+      onTap: () {
+        Haptics.light();
+        widget.onTap();
+      },
+      child: AnimatedScale(
+        scale: _pressed ? 0.96 : 1.0,
+        duration: const Duration(milliseconds: 110),
+        curve: Curves.easeOutCubic,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: BackdropFilter(
+            filter: ui.ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: tileColor,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: borderColor, width: 1.0),
+              ),
+              alignment: Alignment.center,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(widget.icon, size: 16, color: fg),
+                  const SizedBox(width: 6),
+                  Text(widget.label, style: TextStyle(color: fg, fontSize: 14, fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GlassCircleButton extends StatefulWidget {
+  const _GlassCircleButton({
+    required this.icon,
+    required this.color,
+    required this.onTap,
+    this.size = 46,
+    this.semanticLabel,
+  });
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+  final double size; // diameter
+  final String? semanticLabel;
+
+  @override
+  State<_GlassCircleButton> createState() => _GlassCircleButtonState();
+}
+
+
+class _GlassCircleButtonState extends State<_GlassCircleButton> {
+  bool _pressed = false;
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final glassBase = isDark ? Colors.black.withOpacity(0.06) : Colors.white.withOpacity(0.06);
+    final overlay = isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.05);
+    final tileColor = _pressed ? Color.alphaBlend(overlay, glassBase) : glassBase;
+    final borderColor = cs.outlineVariant.withOpacity(isDark ? 0.35 : 0.40);
+
+    final child = SizedBox(
+      width: widget.size,
+      height: widget.size,
+      child: Center(child: Icon(widget.icon, size: 18, color: widget.color)),
+    );
+
+    return Semantics(
+      button: true,
+      label: widget.semanticLabel,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapUp: (_) => setState(() => _pressed = false),
+        onTapCancel: () => setState(() => _pressed = false),
+        onTap: () {
+          Haptics.light();
+          widget.onTap();
+        },
+        child: AnimatedScale(
+          scale: _pressed ? 0.95 : 1.0,
+          duration: const Duration(milliseconds: 110),
+          curve: Curves.easeOutCubic,
+          child: ClipOval(
+            child: BackdropFilter(
+              filter: ui.ImageFilter.blur(sigmaX: 36, sigmaY: 36),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: tileColor,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: borderColor, width: 1.0),
+                ),
+                child: child,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+Future<void> _showMultiExportSheet(BuildContext context, List<String> keys) async {
+  final cs = Theme.of(context).colorScheme;
+  final settings = context.read<SettingsProvider>();
+  final l10n = AppLocalizations.of(context)!;
+  final entries = [
+    for (final k in keys)
+      () {
+        final cfg = settings.providerConfigs[k] ?? settings.getProviderConfig(k);
+        final name = (cfg.name.isNotEmpty ? cfg.name : k);
+        final code = encodeProviderConfig(cfg);
+        return {'name': name, 'code': code};
+      }()
+  ];
+  final text = entries.map((e) => e['code']).join('\n');
+  await showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: cs.surface,
+    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+    builder: (ctx) {
+      final bool showQr = keys.length <= 4;
+      Rect shareAnchorRect(BuildContext bctx) {
+        try {
+          final ro = bctx.findRenderObject();
+          if (ro is RenderBox && ro.hasSize && ro.size.width > 0 && ro.size.height > 0) {
+            final origin = ro.localToGlobal(Offset.zero);
+            return origin & ro.size;
+          }
+        } catch (_) {}
+        final size = MediaQuery.of(bctx).size;
+        return Rect.fromCenter(center: Offset(size.width / 2, size.height / 2), width: 1, height: 1);
+      }
+      return SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(16, 10, 16, 16 + MediaQuery.of(ctx).viewInsets.bottom),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: cs.onSurface.withOpacity(0.2), borderRadius: BorderRadius.circular(999)))),
+              const SizedBox(height: 12),
+              Center(child: Text(l10n.providersPageExportSelectedTitle(keys.length), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600))),
+              const SizedBox(height: 12),
+              // Show QR only when selection is small to avoid overlong input
+              if (showQr) ...[
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: cs.outlineVariant.withOpacity(0.2)),
+                    ),
+                    child: PrettyQr(
+                      data: text,
+                      size: 180,
+                      roundEdges: true,
+                      errorCorrectLevel: QrErrorCorrectLevel.M,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+              // Limited preview of codes (6-7 lines), full content still copied/shared
+              SizedBox(
+                height: 128,
+                child: SingleChildScrollView(
+                  child: Text(
+                    text,
+                    maxLines: 7,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 13.5, height: 1.35),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: IosTileButton(
+                      icon: Lucide.Copy,
+                      label: l10n.providersPageExportCopyButton,
+                      onTap: () {
+                        Clipboard.setData(ClipboardData(text: text));
+                        showAppSnackBar(context, message: l10n.providersPageExportCopiedSnackbar, type: NotificationType.success);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: IosTileButton(
+                      icon: Lucide.Share2,
+                      label: l10n.providersPageExportShareButton,
+                      onTap: () async {
+                        final rect = shareAnchorRect(ctx);
+                        await Share.share(text, subject: 'AI Providers', sharePositionOrigin: rect);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
 }
 
 // Drag handle removed per design; dragging is triggered by long-pressing the card.
@@ -473,6 +1029,7 @@ class _TactileIconButton extends StatefulWidget {
     this.onLongPress,
     this.semanticLabel,
     this.size = 22,
+    this.haptics = true,
   });
 
   final IconData icon;
@@ -481,6 +1038,7 @@ class _TactileIconButton extends StatefulWidget {
   final VoidCallback? onLongPress;
   final String? semanticLabel;
   final double size;
+  final bool haptics;
 
   @override
   State<_TactileIconButton> createState() => _TactileIconButtonState();
@@ -508,8 +1066,8 @@ class _TactileIconButtonState extends State<_TactileIconButton> {
         onTapDown: (_) => setState(() => _pressed = true),
         onTapUp: (_) => setState(() => _pressed = false),
         onTapCancel: () => setState(() => _pressed = false),
-        onTap: widget.onTap,
-        onLongPress: widget.onLongPress,
+        onTap: () { if (widget.haptics) Haptics.light(); widget.onTap(); },
+        onLongPress: widget.onLongPress == null ? null : () { if (widget.haptics) Haptics.light(); widget.onLongPress!.call(); },
         child: AnimatedScale(
           scale: _pressed ? 0.95 : 1.0,
           duration: const Duration(milliseconds: 100),
@@ -522,4 +1080,54 @@ class _TactileIconButtonState extends State<_TactileIconButton> {
       ),
     );
   }
+}
+
+// Row tactile wrapper for iOS-style lists: no ripple, optional haptics, color-only press feedback
+class _TactileRow extends StatefulWidget {
+  const _TactileRow({required this.builder, this.onTap, this.pressedScale = 1.00, this.haptics = true});
+  final Widget Function(bool pressed) builder;
+  final VoidCallback? onTap;
+  final double pressedScale;
+  final bool haptics;
+  @override
+  State<_TactileRow> createState() => _TactileRowState();
+}
+
+class _TactileRowState extends State<_TactileRow> {
+  bool _pressed = false;
+  void _setPressed(bool v) { if (_pressed != v) setState(() => _pressed = v); }
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: widget.onTap == null ? null : (_) => _setPressed(true),
+      onTapUp: widget.onTap == null ? null : (_) => _setPressed(false),
+      onTapCancel: widget.onTap == null ? null : () => _setPressed(false),
+      onTap: widget.onTap == null ? null : () { if (widget.haptics) Haptics.soft(); widget.onTap!.call(); },
+      child: widget.builder(_pressed),
+    );
+  }
+}
+
+class _AnimatedPressColor extends StatelessWidget {
+  const _AnimatedPressColor({required this.pressed, required this.base, required this.builder});
+  final bool pressed;
+  final Color base;
+  final Widget Function(Color color) builder;
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final target = pressed ? (Color.lerp(base, isDark ? Colors.black : Colors.white, 0.55) ?? base) : base;
+    return TweenAnimationBuilder<Color?>(
+      tween: ColorTween(end: target),
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      builder: (context, color, _) => builder(color ?? base),
+    );
+  }
+}
+
+Widget _iosDivider(BuildContext context) {
+  final cs = Theme.of(context).colorScheme;
+  return Divider(height: 6, thickness: 0.6, indent: 54, endIndent: 12, color: cs.outlineVariant.withOpacity(0.18));
 }

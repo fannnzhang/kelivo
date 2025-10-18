@@ -105,6 +105,20 @@
   "assistantEditQQAvatarFailedMessage": "获取随机QQ头像失败，请重试",
   "assistantEditQQAvatarDialogCancel": "取消",
   "assistantEditQQAvatarDialogSave": "保存",
+  "providersPageMultiSelectTooltip": "多选",
+  "providersPageDeleteSelectedConfirmContent": "确定要删除选中的供应商吗？该操作不可撤销。",
+  "providersPageDeleteSelectedSnackbar": "已删除选中的供应商",
+  "providersPageExportSelectedTitle": "导出 {count} 个供应商",
+  "@providersPageExportSelectedTitle": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "providersPageExportCopyButton": "复制",
+  "providersPageExportShareButton": "分享",
+  "providersPageExportCopiedSnackbar": "已复制导出代码",
+  "providersPageDeleteAction": "删除",
+  "providersPageExportAction": "导出",
   "assistantEditGalleryErrorMessage": "无法打开相册，试试输入图片链接",
   "assistantEditGeneralErrorMessage": "发生错误，试试输入图片链接",
   "providerDetailPageMultiKeyModeTitle": "多Key模式",
@@ -265,6 +279,13 @@
   "backupPageNoBackups": "暂无备份",
   "backupPageRestoreTooltip": "恢复",
   "backupPageDeleteTooltip": "删除",
+  "backupPageBackupManagement": "备份管理",
+  "backupPageWebDavBackup": "WebDAV 备份",
+  "backupPageWebDavServerSettings": "WebDAV 服务器设置",
+  "backupPageSave": "保存",
+  "backupPageBackupNow": "立即备份",
+  "backupPageLocalBackup": "本地备份",
+  "backupPageImportFromCherryStudio": "从 Cherry Studio 导入",
   "homePageClearContext": "清空上下文",
   "homePageClearContextWithCount": "清空上下文 ({actual}/{configured})",
   "homePageDefaultAssistant": "默认助手",
@@ -693,6 +714,7 @@
   "aboutPageSystem": "系统",
   "aboutPageWebsite": "官网",
   "aboutPageLicense": "许可证",
+  "aboutPageJoinDiscord": "在 Discord 中加入我们",
   "displaySettingsPageShowUserAvatarTitle": "显示用户头像",
   "displaySettingsPageShowUserAvatarSubtitle": "是否在聊天消息中显示用户头像",
   "displaySettingsPageShowUserNameTimestampTitle": "显示用户名称和时间戳",
@@ -813,5 +835,6 @@
   "displaySettingsPageChatItemDisplayTitle": "聊天项显示",
   "displaySettingsPageRenderingSettingsTitle": "渲染设置",
   "displaySettingsPageBehaviorStartupTitle": "行为与启动",
-  "displaySettingsPageHapticsSettingsTitle": "触觉反馈"
+  "displaySettingsPageHapticsSettingsTitle": "触觉反馈",
+  "assistantSettingsNoPromptPlaceholder": "暂无提示词"
 }

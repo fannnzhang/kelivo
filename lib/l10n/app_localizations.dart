@@ -1565,6 +1565,48 @@ abstract class AppLocalizations {
   /// **'Delete'**
   String get backupPageDeleteTooltip;
 
+  /// No description provided for @backupPageBackupManagement.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup Management'**
+  String get backupPageBackupManagement;
+
+  /// No description provided for @backupPageWebDavBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'WebDAV Backup'**
+  String get backupPageWebDavBackup;
+
+  /// No description provided for @backupPageWebDavServerSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'WebDAV Server Settings'**
+  String get backupPageWebDavServerSettings;
+
+  /// No description provided for @backupPageSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get backupPageSave;
+
+  /// No description provided for @backupPageBackupNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup Now'**
+  String get backupPageBackupNow;
+
+  /// No description provided for @backupPageLocalBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Local Backup'**
+  String get backupPageLocalBackup;
+
+  /// No description provided for @backupPageImportFromCherryStudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from Cherry Studio'**
+  String get backupPageImportFromCherryStudio;
+
   /// No description provided for @chatHistoryPageTitle.
   ///
   /// In en, this message translates to:
@@ -4037,6 +4079,12 @@ abstract class AppLocalizations {
   /// **'License'**
   String get aboutPageLicense;
 
+  /// No description provided for @aboutPageJoinDiscord.
+  ///
+  /// In en, this message translates to:
+  /// **'Join us on Discord'**
+  String get aboutPageJoinDiscord;
+
   /// No description provided for @displaySettingsPageShowUserAvatarTitle.
   ///
   /// In en, this message translates to:
@@ -4696,6 +4744,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Haptics'**
   String get displaySettingsPageHapticsSettingsTitle;
+
+  /// No description provided for @assistantSettingsNoPromptPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'No prompt yet'**
+  String get assistantSettingsNoPromptPlaceholder;
+
+  /// No description provided for @providersPageMultiSelectTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Multi-select'**
+  String get providersPageMultiSelectTooltip;
+
+  /// No description provided for @providersPageDeleteSelectedConfirmContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete selected providers? This cannot be undone.'**
+  String get providersPageDeleteSelectedConfirmContent;
+
+  /// No description provided for @providersPageDeleteSelectedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted selected providers'**
+  String get providersPageDeleteSelectedSnackbar;
+
+  /// No description provided for @providersPageExportSelectedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Export {count} providers'**
+  String providersPageExportSelectedTitle(int count);
+
+  /// No description provided for @providersPageExportCopyButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get providersPageExportCopyButton;
+
+  /// No description provided for @providersPageExportShareButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get providersPageExportShareButton;
+
+  /// No description provided for @providersPageExportCopiedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied export code'**
+  String get providersPageExportCopiedSnackbar;
+
+  /// No description provided for @providersPageDeleteAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get providersPageDeleteAction;
+
+  /// No description provided for @providersPageExportAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Export'**
+  String get providersPageExportAction;
 }
 
 class _AppLocalizationsDelegate

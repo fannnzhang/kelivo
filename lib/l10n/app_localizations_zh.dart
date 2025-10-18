@@ -760,6 +760,27 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backupPageDeleteTooltip => '删除';
 
   @override
+  String get backupPageBackupManagement => '备份管理';
+
+  @override
+  String get backupPageWebDavBackup => 'WebDAV 备份';
+
+  @override
+  String get backupPageWebDavServerSettings => 'WebDAV 服务器设置';
+
+  @override
+  String get backupPageSave => '保存';
+
+  @override
+  String get backupPageBackupNow => '立即备份';
+
+  @override
+  String get backupPageLocalBackup => '本地备份';
+
+  @override
+  String get backupPageImportFromCherryStudio => '从 Cherry Studio 导入';
+
+  @override
   String get chatHistoryPageTitle => '聊天历史';
 
   @override
@@ -2050,6 +2071,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aboutPageLicense => '许可证';
 
   @override
+  String get aboutPageJoinDiscord => '在 Discord 中加入我们';
+
+  @override
   String get displaySettingsPageShowUserAvatarTitle => '显示用户头像';
 
   @override
@@ -2395,6 +2419,39 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get displaySettingsPageHapticsSettingsTitle => '触觉反馈';
+
+  @override
+  String get assistantSettingsNoPromptPlaceholder => '暂无提示词';
+
+  @override
+  String get providersPageMultiSelectTooltip => '多选';
+
+  @override
+  String get providersPageDeleteSelectedConfirmContent =>
+      '确定要删除选中的供应商吗？该操作不可撤销。';
+
+  @override
+  String get providersPageDeleteSelectedSnackbar => '已删除选中的供应商';
+
+  @override
+  String providersPageExportSelectedTitle(int count) {
+    return '导出 $count 个供应商';
+  }
+
+  @override
+  String get providersPageExportCopyButton => '复制';
+
+  @override
+  String get providersPageExportShareButton => '分享';
+
+  @override
+  String get providersPageExportCopiedSnackbar => '已复制导出代码';
+
+  @override
+  String get providersPageDeleteAction => '删除';
+
+  @override
+  String get providersPageExportAction => '导出';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -3153,6 +3210,27 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get backupPageDeleteTooltip => '删除';
 
   @override
+  String get backupPageBackupManagement => '备份管理';
+
+  @override
+  String get backupPageWebDavBackup => 'WebDAV 备份';
+
+  @override
+  String get backupPageWebDavServerSettings => 'WebDAV 服务器设置';
+
+  @override
+  String get backupPageSave => '保存';
+
+  @override
+  String get backupPageBackupNow => '立即备份';
+
+  @override
+  String get backupPageLocalBackup => '本地备份';
+
+  @override
+  String get backupPageImportFromCherryStudio => '从 Cherry Studio 导入';
+
+  @override
   String get chatHistoryPageTitle => '聊天历史';
 
   @override
@@ -4443,6 +4521,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get aboutPageLicense => '许可证';
 
   @override
+  String get aboutPageJoinDiscord => '在 Discord 中加入我们';
+
+  @override
   String get displaySettingsPageShowUserAvatarTitle => '显示用户头像';
 
   @override
@@ -4788,6 +4869,39 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get displaySettingsPageHapticsSettingsTitle => '触觉反馈';
+
+  @override
+  String get assistantSettingsNoPromptPlaceholder => '暂无提示词';
+
+  @override
+  String get providersPageMultiSelectTooltip => '多选';
+
+  @override
+  String get providersPageDeleteSelectedConfirmContent =>
+      '确定要删除选中的供应商吗？该操作不可撤销。';
+
+  @override
+  String get providersPageDeleteSelectedSnackbar => '已删除选中的供应商';
+
+  @override
+  String providersPageExportSelectedTitle(int count) {
+    return '导出 $count 个供应商';
+  }
+
+  @override
+  String get providersPageExportCopyButton => '复制';
+
+  @override
+  String get providersPageExportShareButton => '分享';
+
+  @override
+  String get providersPageExportCopiedSnackbar => '已复制导出代码';
+
+  @override
+  String get providersPageDeleteAction => '删除';
+
+  @override
+  String get providersPageExportAction => '导出';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -5544,6 +5658,27 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get backupPageDeleteTooltip => '刪除';
+
+  @override
+  String get backupPageBackupManagement => '備份管理';
+
+  @override
+  String get backupPageWebDavBackup => 'WebDAV 備份';
+
+  @override
+  String get backupPageWebDavServerSettings => 'WebDAV 伺服器設定';
+
+  @override
+  String get backupPageSave => '儲存';
+
+  @override
+  String get backupPageBackupNow => '立即備份';
+
+  @override
+  String get backupPageLocalBackup => '本機備份';
+
+  @override
+  String get backupPageImportFromCherryStudio => '從 Cherry Studio 匯入';
 
   @override
   String get chatHistoryPageTitle => '聊天歷史';
@@ -6835,6 +6970,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get aboutPageLicense => '授權';
 
   @override
+  String get aboutPageJoinDiscord => '加入我們的 Discord';
+
+  @override
   String get displaySettingsPageShowUserAvatarTitle => '顯示使用者頭像';
 
   @override
@@ -7182,4 +7320,37 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get displaySettingsPageHapticsSettingsTitle => '觸覺回饋';
+
+  @override
+  String get assistantSettingsNoPromptPlaceholder => '暫無提示詞';
+
+  @override
+  String get providersPageMultiSelectTooltip => '多選';
+
+  @override
+  String get providersPageDeleteSelectedConfirmContent =>
+      '確定要刪除選中的供應商嗎？此操作不可撤銷。';
+
+  @override
+  String get providersPageDeleteSelectedSnackbar => '已刪除選中的供應商';
+
+  @override
+  String providersPageExportSelectedTitle(int count) {
+    return '匯出 $count 個供應商';
+  }
+
+  @override
+  String get providersPageExportCopyButton => '複製';
+
+  @override
+  String get providersPageExportShareButton => '分享';
+
+  @override
+  String get providersPageExportCopiedSnackbar => '已複製匯出代碼';
+
+  @override
+  String get providersPageDeleteAction => '刪除';
+
+  @override
+  String get providersPageExportAction => '匯出';
 }
