@@ -1,0 +1,36 @@
+[package]
+name = "kelivo_core"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = []
+logging = []
+
+[dependencies]
+anyhow = "1.0"
+async-stream = "0.3"
+async-trait = "0.1"
+base64 = "0.13"
+chrono = { version = "0.4", features = ["clock"] }
+directories = "5.0"
+futures = "0.3"
+jsonwebtoken = { version = "9.3", default-features = false, features = ["use_pem"] }
+lazy_static = "1.4"
+pdf-extract = "0.7"
+parking_lot = "0.12"
+reqwest = { version = "0.11", default-features = false, features = ["json", "stream", "rustls-tls"] }
+quick-xml = { version = "0.31", features = ["encoding"] }
+regex = "1.5"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.34", features = ["rt", "rt-multi-thread", "macros", "sync", "time"] }
+tokio-util = "0.7"
+uuid = { version = "1.0", features = ["v5"] }
+zip = { version = "0.6", default-features = false, features = ["deflate"] }
+rusqlite = { version = "0.30", features = ["bundled", "chrono"] }
+
+[dev-dependencies]
+httpmock = "0.7"
+pdf-writer = "0.14"
+tempfile = "3.10"

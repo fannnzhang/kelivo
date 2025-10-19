@@ -6,8 +6,7 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `finalize_response`, `local_name`, `sanitize_zip_path`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`
 
 Future<Uint8List> createBackupZip({
   required List<BackupZipEntryInput> entries,
@@ -18,10 +17,10 @@ Future<List<BackupZipEntry>> extractBackupZip({required List<int> bytes}) =>
 
 Future<List<WebDavEntry>> parseWebdavPropfind({
   required String xml,
-  required String baseUrl,
+  required String baseHref,
 }) => RustLib.instance.api.crateApiBackupParseWebdavPropfind(
   xml: xml,
-  baseUrl: baseUrl,
+  baseHref: baseHref,
 );
 
 class BackupZipEntry {

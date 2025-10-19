@@ -6,7 +6,7 @@ Scope: Entire repository. Applies to generating and maintaining docs under `spec
 1) Create/Update `specs/<feature-or-bug>/requirements.md`, `design.md`, `tasks.md` by instantiating the templates in `specify/templates/`.
 2) If a spec exists, perform incremental updates without breaking section order or numbering.
 3) Always keep content aligned with repository `README.md`, any `constitution.md`, and existing code.
-4) Always checkout (-b) the `specs/<feature-or-bug>` branch and execute the `tasks.md`
+4) Always checkout (-b) the `spec/<feature-or-bug>` branch and execute the `tasks.md`
 
 Principles
 - Templates must be pure skeletons. Do not embed usage guidance, examples, or process constraints inside files in `specify/templates/`. Place all rules, conventions, and constraints here.
@@ -32,6 +32,7 @@ Principles
 - 确认型通知（actions）发送一次即可 **强制等待结果**
 - 回复型通知（reply）发送一次即可 **强制等待结果**
 
+对于非confirm型的通知类调用 **强制要求使用** `> /dev/null 2>&1 &`用于忽略alerter命令的结果 否则会持续阻塞等待
 ---
 
 # 📁 Project Structure & Module Organization

@@ -1,5 +1,6 @@
 import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
+import 'package:Kelivo/src/rust/api/db.dart' as rust_db;
 
 part 'conversation.g.dart';
 
@@ -112,6 +113,38 @@ class Conversation extends HiveObject {
       assistantId: json['assistantId'] as String?,
       truncateIndex: json['truncateIndex'] as int? ?? -1,
       versionSelections: (json['versionSelections'] as Map?)?.map((k, v) => MapEntry(k.toString(), (v as num).toInt())) ?? <String, int>{},
+    );
+  }
+}
+
+extension ConversationRustExtensions on Conversation {
+  rust_db.FrbConversation toFrb() {
+    return rust_db.FrbConversation(
+      id: id,
+      title: title,
+      createdAt: createdAt.toIso8601String(),
+      updatedAt: updatedAt.toIso8601String(),
+      messageIds: List<String>.from(messageIds),
+      isPinned: isPinned,
+      mcpServerIds: List<String>.from(mcpServerIds),
+      assistantId: assistantId,
+      truncateIndex: truncateIndex,
+      versionSelections: Map<String, int>.from(versionSelections),
+    );
+  }
+
+  static Conversation fromFrb(rust_db.FrbConversation frb) {
+    return Conversation(
+      id: frb.id,
+      title: frb.title,
+      createdAt: DateTime.parse(frb.createdAt),
+      updatedAt: DateTime.parse(frb.updatedAt),
+      messageIds: List<String>.from(frb.messageIds),
+      isPinned: frb.isPinned,
+      mcpServerIds: List<String>.from(frb.mcpServerIds),
+      assistantId: frb.assistantId,
+      truncateIndex: frb.truncateIndex,
+      versionSelections: Map<String, int>.from(frb.versionSelections),
     );
   }
 }

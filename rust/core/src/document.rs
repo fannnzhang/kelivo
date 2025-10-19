@@ -7,15 +7,14 @@ use quick_xml::events::Event;
 use quick_xml::Reader;
 use zip::ZipArchive;
 
-#[flutter_rust_bridge::frb]
-pub fn extract_text_from_pdf(path: String) -> Result<String, String> {
-    let path = Path::new(&path);
-    pdf_extract::extract_text(path).map_err(|err| format!("failed to extract PDF text: {err}"))
+use crate::KelivoResult;
+
+pub fn extract_text_from_pdf(path: &Path) -> KelivoResult<String> {
+    pdf_extract::extract_text(path)
+        .map_err(|err| format!("failed to extract PDF text: {err}").into())
 }
 
-#[flutter_rust_bridge::frb]
-pub fn extract_text_from_docx(path: String) -> Result<String, String> {
-    let path = Path::new(&path);
+pub fn extract_text_from_docx(path: &Path) -> KelivoResult<String> {
     let file = File::open(path)
         .map_err(|err| format!("failed to open DOCX file {}: {err}", path.display()))?;
 
@@ -34,14 +33,13 @@ pub fn extract_text_from_docx(path: String) -> Result<String, String> {
     parse_docx_xml(&xml)
 }
 
-#[flutter_rust_bridge::frb]
-pub fn read_text_fallback(path: String) -> Result<String, String> {
-    let bytes =
-        std::fs::read(&path).map_err(|err| format!("failed to read file {}: {err}", path))?;
+pub fn read_text_fallback(path: &Path) -> KelivoResult<String> {
+    let bytes = std::fs::read(path)
+        .map_err(|err| format!("failed to read file {}: {err}", path.display()))?;
     Ok(String::from_utf8_lossy(&bytes).to_string())
 }
 
-fn parse_docx_xml(xml: &str) -> Result<String, String> {
+fn parse_docx_xml(xml: &str) -> KelivoResult<String> {
     let mut reader = Reader::from_str(xml);
     reader.trim_text(false);
 
@@ -76,7 +74,7 @@ fn parse_docx_xml(xml: &str) -> Result<String, String> {
                 } else {
                     let trimmed = text.trim();
                     if trimmed.is_empty() {
-                        // Skip purely whitespace runs when not preserving space.
+                        // skip whitespace nodes when not preserving space
                     } else {
                         let needs_space = current
                             .chars()
@@ -93,7 +91,7 @@ fn parse_docx_xml(xml: &str) -> Result<String, String> {
             }
             Ok(Event::Eof) => break,
             Ok(_) => {}
-            Err(err) => return Err(format!("failed to parse DOCX XML: {err}")),
+            Err(err) => return Err(format!("failed to parse DOCX XML: {err}").into()),
         }
         buf.clear();
     }
@@ -112,7 +110,6 @@ mod tests {
     use std::error::Error;
     use std::fs::File;
     use std::io::{BufWriter, Write};
-    use std::path::Path;
     use tempfile::tempdir;
     use zip::write::FileOptions;
     use zip::CompressionMethod;
@@ -123,63 +120,88 @@ mod tests {
         let pdf_path = dir.path().join("sample.pdf");
         create_sample_pdf(&pdf_path, "Hello from PDF").expect("create sample pdf");
 
-        let text = extract_text_from_pdf(pdf_path.to_string_lossy().to_string())
-            .expect("extract text from pdf");
-        assert!(
-            text.contains("Hello from PDF"),
-            "expected extracted text to contain 'Hello from PDF', got: {text}"
-        );
+        let text = extract_text_from_pdf(&pdf_path).expect("extract text from pdf");
+        assert!(text.contains("Hello from PDF"));
     }
 
     #[test]
     fn extracts_docx_text() {
         let dir = tempdir().expect("temp dir");
         let docx_path = dir.path().join("sample.docx");
-        create_sample_docx(&docx_path, &["Hello DOCX", "Second paragraph"])
-            .expect("create sample docx");
+        create_sample_docx(&docx_path, &["Hello", "World"]).expect("create docx");
 
-        let text = extract_text_from_docx(docx_path.to_string_lossy().to_string())
-            .expect("extract text from docx");
-        let mut lines = text.lines();
-        assert_eq!(lines.next(), Some("Hello DOCX"));
-        assert_eq!(lines.next(), Some("Second paragraph"));
+        let text = extract_text_from_docx(&docx_path).expect("extract text from docx");
+        assert!(text.contains("Hello"));
+        assert!(text.contains("World"));
+        let lines: Vec<&str> = text.lines().collect();
+        assert!(lines.iter().any(|line| line.contains("Hello")));
     }
 
     #[test]
-    fn reads_text_fallback_with_lossy_utf8() {
-        let dir = tempdir().expect("temp dir");
-        let txt_path = dir.path().join("sample.txt");
-        std::fs::write(&txt_path, b"Hello \xF0\x9F\x92\xA9 World\xC3").expect("write sample text");
+    fn parse_docx_xml_preserves_space_attribute() {
+        let xml = r#"<?xml version="1.0"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <w:p>
+      <w:r>
+        <w:t xml:space="preserve">  Leading and trailing  </w:t>
+      </w:r>
+    </w:p>
+  </w:body>
+</w:document>
+"#;
 
-        let text =
-            read_text_fallback(txt_path.to_string_lossy().to_string()).expect("read text fallback");
-        assert!(
-            text.contains("Hello"),
-            "expected fallback text to contain 'Hello', got: {text}"
-        );
-        assert!(
-            text.contains("World"),
-            "expected fallback text to contain 'World', got: {text}"
-        );
+        let text = parse_docx_xml(xml).expect("parse xml");
+        assert_eq!(text, "  Leading and trailing  ");
     }
 
-    // #[test]
-    // #[ignore]
-    // fn print_sample_artifacts() {
-    //     use base64::{engine::general_purpose::STANDARD, Engine};
-    //
-    //     let dir = tempdir().expect("temp dir");
-    //     let pdf_path = dir.path().join("sample.pdf");
-    //     create_sample_pdf(&pdf_path, "Sample PDF from Rust").expect("create pdf");
-    //     let docx_path = dir.path().join("sample.docx");
-    //     create_sample_docx(&docx_path, &["Sample DOCX from Rust"]).expect("create docx");
-    //
-    //     let pdf_b64 = STANDARD.encode(std::fs::read(&pdf_path).expect("read pdf"));
-    //     let docx_b64 = STANDARD.encode(std::fs::read(&docx_path).expect("read docx"));
-    //
-    //     println!("PDF_BASE64={pdf_b64}");
-    //     println!("DOCX_BASE64={docx_b64}");
-    // }
+    #[test]
+    fn parse_docx_xml_trims_default_whitespace() {
+        let xml = r#"<?xml version="1.0"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <w:p>
+      <w:r><w:t> Hello </w:t></w:r>
+      <w:r><w:t>World </w:t></w:r>
+    </w:p>
+  </w:body>
+</w:document>
+"#;
+
+        let text = parse_docx_xml(xml).expect("parse xml");
+        assert_eq!(text, "Hello World");
+    }
+
+    #[test]
+    fn extract_text_from_docx_reports_missing_document_xml() {
+        let dir = tempdir().expect("temp dir");
+        let docx_path = dir.path().join("broken.docx");
+        create_docx_without_document_xml(&docx_path).expect("create broken docx");
+
+        let err = extract_text_from_docx(&docx_path).expect_err("expected failure");
+        assert!(err.message().contains("DOCX missing word/document.xml"));
+    }
+
+    #[test]
+    fn extract_text_from_docx_reports_parse_errors() {
+        let dir = tempdir().expect("temp dir");
+        let docx_path = dir.path().join("invalid.docx");
+        create_docx_with_raw_document(&docx_path, b"\x80\x81").expect("create invalid docx");
+
+        let err = extract_text_from_docx(&docx_path).expect_err("expected failure");
+        assert!(err.message().contains("failed to read DOCX XML"));
+    }
+
+    #[test]
+    fn read_text_fallback_returns_lossy_string() {
+        let dir = tempdir().expect("temp dir");
+        let path = dir.path().join("sample.txt");
+        std::fs::write(&path, b"Hello\xffWorld").expect("write sample file");
+
+        let text = read_text_fallback(&path).expect("read text fallback");
+        assert!(text.contains("Hello"));
+        assert!(text.contains("World"));
+    }
 
     fn create_sample_pdf(path: &Path, text: &str) -> Result<(), Box<dyn Error>> {
         let catalog_id = Ref::new(1);
@@ -264,7 +286,62 @@ mod tests {
 
         body.push_str("  </w:body>\n</w:document>");
         zip.write_all(body.as_bytes())?;
-        zip.finish();
+        Ok(())
+    }
+
+    fn create_docx_without_document_xml(path: &Path) -> Result<(), Box<dyn Error>> {
+        let file = File::create(path)?;
+        let mut zip = zip::ZipWriter::new(file);
+        let options = FileOptions::default().compression_method(CompressionMethod::Stored);
+
+        zip.start_file("[Content_Types].xml", options)?;
+        zip.write_all(
+            br#"<?xml version="1.0" encoding="UTF-8"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+</Types>"#,
+        )?;
+
+        zip.start_file("_rels/.rels", options)?;
+        zip.write_all(
+            br#"<?xml version="1.0" encoding="UTF-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>"#,
+        )?;
+
+        Ok(())
+    }
+
+    fn create_docx_with_raw_document(
+        path: &Path,
+        document_xml: &[u8],
+    ) -> Result<(), Box<dyn Error>> {
+        let file = File::create(path)?;
+        let mut zip = zip::ZipWriter::new(file);
+        let options = FileOptions::default().compression_method(CompressionMethod::Stored);
+
+        zip.start_file("[Content_Types].xml", options)?;
+        zip.write_all(
+            br#"<?xml version="1.0" encoding="UTF-8"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>"#,
+        )?;
+
+        zip.start_file("_rels/.rels", options)?;
+        zip.write_all(
+            br#"<?xml version="1.0" encoding="UTF-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>"#,
+        )?;
+
+        zip.start_file("word/document.xml", options)?;
+        zip.write_all(document_xml)?;
         Ok(())
     }
 

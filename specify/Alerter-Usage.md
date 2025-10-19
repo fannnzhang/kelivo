@@ -10,32 +10,7 @@
 
 ---
 
-## 1) 普通通知（任务开始/完成）
-```bash
-# 任务开始
-alerter -title "任务开始" -message "已开始执行 🚀" -sound default -group JOB1
-
-# 任务完成
-alerter -title "任务完成" -message "✅ 执行成功" -timeout 8 -group JOB1
-```
-
-## 2) 确认型通知（Actions）
-```bash
-ANSWER=$(alerter -message "是否继续执行？" -actions "继续","取消" -timeout 15)
-case "$ANSWER" in
-  "继续") echo "继续执行" ;;
-  "取消") echo "已取消" ;;
-  "@TIMEOUT") echo "超时未响应" ;;
-esac
-```
-
-## 2) 确认型通知（Actions）
-```bash
-INPUT=$(alerter -reply -title "参数输入" -message "请输入版本号：")
-echo "用户输入：$INPUT"
-```
-
-## example
+对于非confirm型的通知类调用 **强制要求使用** `> /dev/null 2>&1 &`用于忽略alerter命令的结果 否则会持续阻塞等待
 
 ### 📊 任务状态通知（status）
 ```bash
