@@ -11,7 +11,7 @@ This document outlines the master plan for establishing the foundational Rust li
 
 ## Phase 0: Workspace and Foundation
 
-- [ ] 0. Workspace scaffold (api + core)
+- [x] 0. Workspace scaffold (api + core)
   - Summary: Create `rust/` workspace with `api` (FFI) and `core` (logic) crates.
   - Files:
     - `rust/Cargo.toml`, `rust/api/Cargo.toml`, `rust/core/Cargo.toml`
@@ -25,7 +25,7 @@ This document outlines the master plan for establishing the foundational Rust li
     - `cargo check -p rust_lib_Kelivo` and `cargo check -p core` succeed locally.
     - 提交本次修改的代码（遵循 `specify/Git-Flow.md`）。
 
-- [ ] 0.1 FRB config switch to workspace
+- [x] 0.1 FRB config switch to workspace
   - Summary: Point FRB to `rust/api` crate while keeping Dart output unchanged.
   - Files:
     - `flutter_rust_bridge.yaml`
@@ -36,7 +36,7 @@ This document outlines the master plan for establishing the foundational Rust li
     - `flutter_rust_bridge_codegen generate` succeeds; generated Dart path unchanged.
     - 提交本次修改的代码（遵循 `specify/Git-Flow.md`）。
 
-- [ ] 0.2 rust_builder alignment
+- [x] 0.2 rust_builder alignment
   - Summary: Ensure iOS/Android/macOS/Windows builders target the `rust_lib_Kelivo` crate within the workspace.
   - Files:
     - `rust_builder/*` (CMakeLists.txt, podspecs, gradle)
@@ -48,7 +48,7 @@ This document outlines the master plan for establishing the foundational Rust li
     - Local platform build succeeds or remains functionally equivalent to baseline.
     - 提交本次修改的代码（遵循 `specify/Git-Flow.md`）。
 
-- [ ] 0.3 Migrate modules with thin wrappers
+- [x] 0.3 Migrate modules with thin wrappers
   - Summary: Move implementations to `core` and keep `api` FRB signatures stable.
   - Files:
     - From `rust/src/api/*` to `rust/core/src/*` and `rust/api/src/api/*`
@@ -60,7 +60,7 @@ This document outlines the master plan for establishing the foundational Rust li
     - All existing FRB-exported functions compile and behave as before.
     - 提交本次修改的代码（遵循 `specify/Git-Flow.md`）。
 
-- [ ] 0.4 Document env and platform path behavior
+- [x] 0.4 Document env and platform path behavior
   - Summary: Clarify `KELIVO_SANITIZER_IMAGE_DIR` and iOS/macOS sandbox behavior.
   - Files:
     - `docs/rust_frb_build.md`, `specs/rust-core-capabilities/design.md`
@@ -75,7 +75,7 @@ This document outlines the master plan for establishing the foundational Rust li
 
 This phase can be parallelized where dependencies allow.
 
-- [ ] 1. Backup zip + WebDAV hardening
+- [x] 1. Backup zip + WebDAV hardening
   - Summary: Strengthen path normalization contract and WebDAV parsing edge cases.
   - Files:
     - `rust/core/src/zip_webdav.rs`, `rust/api/src/api/backup.rs`, `lib/core/services/backup/data_sync.dart`
@@ -87,7 +87,7 @@ This phase can be parallelized where dependencies allow.
     - Rust tests pass for traversal/empty zip/propfind cases; Dart e2e lists uploads.
     - 提交本次修改的代码（遵循 `specify/Git-Flow.md`）。
 
-- [ ] 1.1 Markdown sanitizer clarity
+- [x] 1.1 Markdown sanitizer clarity
   - Summary: Document env/output dir and expand MIME/extension coverage.
   - Files:
     - `rust/core/src/markdown.rs`, `rust/api/src/api/markdown_sanitizer.rs`, `docs/rust_frb_build.md`
@@ -98,7 +98,7 @@ This phase can be parallelized where dependencies allow.
     - Tests pass; doc updated; benchmark still favorable or comparable.
     - 提交本次修改的代码（遵循 `specify/Git-Flow.md`）。
 
-- [ ] 1.2 Document parser messages
+- [x] 1.2 Document parser messages
   - Summary: Clarify error copy for file open/ZIP read/XML parse/UTF-8 decode.
   - Files:
     - `rust/core/src/document.rs`, `rust/api/src/api/document_parser.rs`
@@ -109,7 +109,7 @@ This phase can be parallelized where dependencies allow.
     - Tests pass; messages consistent and actionable.
     - 提交本次修改的代码（遵循 `specify/Git-Flow.md`）。
 
-- [ ] 1.3 Google Auth JWT contract
+- [x] 1.3 Google Auth JWT contract
   - Summary: Validate inputs and confirm contract; integration test on Dart side.
   - Files:
     - `rust/core/src/crypto.rs`, `rust/api/src/api/google_auth.rs`, `lib/core/services/api/google_service_account_auth.dart`
@@ -150,7 +150,7 @@ This phase can be parallelized where dependencies allow.
 
 ## Phase 3: LLM Networking (Mock → Real)
 
-- [ ] 3. Provider-agnostic domain + FRB types
+- [x] 3. Provider-agnostic domain + FRB types
   - Summary: Define `FrbChatRequest`, `FrbChatEvent`, `FrbChatResponse` in `rust/api/src/api/llm_types.rs` and map to `core::llm` domain.
   - Files:
     - `rust/core/src/llm/mod.rs`, `rust/api/src/api/llm_types.rs`, `lib/src/rust/api/llm.dart`
@@ -161,7 +161,7 @@ This phase can be parallelized where dependencies allow.
     - `cargo check` passes; FRB codegen succeeds; Dart types available for integration.
     - 提交本次修改的代码。
 
-- [ ] 3.1 Mock provider and streaming contract
+- [x] 3.1 Mock provider and streaming contract
   - Summary: Implement a mock `LlmProvider` that streams deterministic deltas; expose `llm_chat_stream` and `llm_chat`.
   - Files:
     - `rust/core/src/llm/mock.rs`, `rust/api/src/api/llm.rs`
@@ -172,7 +172,7 @@ This phase can be parallelized where dependencies allow.
     - Integration test in Dart consumes stream and renders deltas in order; cancel test completes within 200ms.
     - 提交本次修改的代码。
 
-- [ ] 3.2 Net client and OpenAI-compatible adapter
+- [x] 3.2 Net client and OpenAI-compatible adapter
   - Summary: Add `core::net` (reqwest/rustls) and `core::llm::openai` adapter supporting non-stream + SSE.
   - Files:
     - `rust/core/src/net.rs`, `rust/core/src/llm/openai.rs`, `rust/api/src/api/llm.rs`
@@ -183,7 +183,7 @@ This phase can be parallelized where dependencies allow.
     - E2E against a mockable OpenAI-compatible endpoint passes; golden event sequence stable.
     - 提交本次修改的代码。
 
-- [ ] 3.3 Provider adapters: Anthropic, Google, OpenRouter
+- [x] 3.3 Provider adapters: Anthropic, Google, OpenRouter
   - Summary: Implement adapters incrementally; normalize tool-calls, usage accounting, and finish reasons.
   - Files:
     - `rust/core/src/llm/anthropic.rs`, `rust/core/src/llm/google.rs`, `rust/core/src/llm/openrouter.rs`
@@ -198,7 +198,7 @@ This phase can be parallelized where dependencies allow.
 
 ## Phase 4: Database (Mock → Real)
 
-- [ ] 4. Schema and migrations
+- [x] 4. Schema and migrations
   - Summary: Introduce SQLite with bundled build; define schema for conversations/messages/events and migrations.
   - Files:
     - `rust/core/src/db.rs`, `rust/api/src/api/db.rs`
@@ -209,7 +209,7 @@ This phase can be parallelized where dependencies allow.
     - Unit tests for migration up/down scenarios; open/close DB without leaks.
     - 提交本次修改的代码。
 
-- [ ] 4.1 CRUD + import/export bridges
+- [x] 4.1 CRUD + import/export bridges
   - Summary: Implement CRUD APIs and Hive import/export for progressive rollout.
   - Files:
     - `rust/core/src/db.rs`, `rust/api/src/api/db.rs`, `lib/core/models/conversation.dart`
@@ -224,7 +224,7 @@ This phase can be parallelized where dependencies allow.
 
 ## Phase 5: End-to-End Switchovers
 
-- [ ] 5. Feature flags and Dart glue
+- [x] 5. Feature flags and Dart glue
   - Summary: Add `USE_RUST_LLM` and `USE_RUST_DB` flags and wire callsites to Rust.
   - Files:
     - `lib/config/feature_flags.dart`, `lib/core/services/api/chat_api_service.dart`, `lib/core/providers/*`
