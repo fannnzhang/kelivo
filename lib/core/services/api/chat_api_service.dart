@@ -3373,6 +3373,13 @@ class ChatApiService {
       'provider_id': config.id,
       if (config.baseUrl.isNotEmpty) 'base_url': config.baseUrl,
       if (config.providerType != null) 'provider_type': config.providerType!.name,
+      // Phase 1: ensure Rust receives endpoint + credentials context
+      // api_key respects multi-key manager when enabled
+      if (_effectiveApiKey(config).isNotEmpty) 'api_key': _effectiveApiKey(config),
+      // chat_path for OpenAI-compatible endpoints (/responses for responses API)
+      'chat_path': (config.useResponseApi == true)
+          ? '/responses'
+          : (config.chatPath ?? '/chat/completions'),
     };
     if (metadata != null && metadata.isNotEmpty) {
       meta.addAll(metadata);

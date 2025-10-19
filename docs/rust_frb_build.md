@@ -44,6 +44,40 @@ Feature flags (see `lib/config/feature_flags.dart`):
 
 The Rust LLM service (`kelivo_core::llm`) ships with a mock provider by default. Streaming APIs surface newline-delimited JSON events over FRB (`lib/src/rust/api/llm.dart`). Cancellation is exposed via `llm_cancel` and coordinated through `tokio_util::sync::CancellationToken`.
 
+## LLM request metadata
+
+When `USE_RUST_LLM` is enabled, Dart builds `FrbChatRequest.metadata` with runtime parameters so Rust can route to the correct endpoint without hardcoding:
+
+- provider_id: Provider identifier from `ProviderConfig.id`.
+- base_url: Effective base URL, if provided.
+- provider_type: One of `openai`, `google`, `claude` (when explicitly set).
+- chat_path: `"/responses"` if `useResponseApi == true`, else `chatPath ?? "/chat/completions"`.
+- api_key: Effective API key, honoring multi-key selection.
+
+Secrets must come from environment or the app’s secure storage and must not be committed. For CI or tooling, configure MCP/context7 via `MCP_CONTEXT7_URL` and `MCP_CONTEXT7_TOKEN`.
+
+## LLM 动态 Provider
+
+When `USE_RUST_LLM=true`, Rust dynamically constructs the LLM provider per request using the metadata above, without hardcoded endpoints:
+
+- Endpoint join: `endpoint = join(trim_end(base_url, '/'), trim_start(chat_path, '/'))`.
+- Default path: if `chat_path` is missing, uses `/chat/completions`.
+- Provider ID: `request.provider` overrides `metadata.provider_id`; falls back to `openai`.
+- Required keys: missing `base_url` or `api_key` returns readable errors
+  - `missing required metadata: base_url`
+  - `missing required metadata: api_key`
+
+Cancellation is preserved via `llm_cancel(request_id)`. During a streaming session, cancelling emits a `Cancelled` event before teardown.
+
+Example run:
+
+```
+fvm flutter run --dart-define=USE_RUST=true --dart-define=USE_RUST_LLM=true
+```
+
+MCP/context7
+- Prefer retrieving any external context through MCP. Configure via `MCP_CONTEXT7_URL` and `MCP_CONTEXT7_TOKEN` only. If unavailable, proceed Mock-first and mark as “To Confirm”.
+
 ## Notes
 
 - FRB runtime: `flutter_rust_bridge` v2.
