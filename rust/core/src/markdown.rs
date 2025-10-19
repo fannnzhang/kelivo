@@ -1,33 +1,33 @@
-use anyhow::{anyhow, Context, Result as AnyResult};
+use std::fs;
+use std::path::{Path, PathBuf};
+
+use anyhow::{anyhow, Context};
 use base64::{decode as decode_b64, encode as encode_b64};
-use directories::UserDirs;
 use lazy_static::lazy_static;
 use regex::Regex;
-use std::env;
-use std::fs::{self, File};
-use std::io::Write;
-use std::path::{Path, PathBuf};
 use uuid::Uuid;
+
+use crate::config;
+use crate::fs::{normalize_slash_path, resolve_absolute, write_bytes};
+use crate::KelivoResult;
 
 lazy_static! {
     static ref INLINE_BASE64_RE: Regex =
-        Regex::new(r"!\[[^\]]*\]\((data:image/[a-zA-Z0-9.+\-]+;base64,[a-zA-Z0-9+/=\r\n]+)\)")
+        Regex::new(r"!\[[^\]]*\]\((data:image/[a-zA-Z0-9.+\-]+;base64,[a-zA-Z0-9+/=\r\n]+)\)",)
             .expect("invalid base64 image regex");
     static ref INLINE_IMAGE_RE: Regex =
         Regex::new(r"!\[[^\]]*\]\(([^)]+)\)").expect("invalid image regex");
 }
 
-#[flutter_rust_bridge::frb]
-pub fn replace_inline_base64_images(markdown: String) -> Result<String, String> {
-    replace_inline_base64_images_impl(&markdown).map_err(|err| err.to_string())
+pub fn replace_inline_base64_images(markdown: &str) -> KelivoResult<String> {
+    replace_inline_base64_images_impl(markdown).map_err(Into::into)
 }
 
-#[flutter_rust_bridge::frb]
-pub fn inline_local_images_to_base64(markdown: String) -> Result<String, String> {
-    inline_local_images_to_base64_impl(&markdown).map_err(|err| err.to_string())
+pub fn inline_local_images_to_base64(markdown: &str) -> KelivoResult<String> {
+    inline_local_images_to_base64_impl(markdown).map_err(Into::into)
 }
 
-fn replace_inline_base64_images_impl(markdown: &str) -> AnyResult<String> {
+fn replace_inline_base64_images_impl(markdown: &str) -> anyhow::Result<String> {
     if !markdown.contains("data:image") {
         return Ok(markdown.to_string());
     }
@@ -58,7 +58,7 @@ fn replace_inline_base64_images_impl(markdown: &str) -> AnyResult<String> {
             write_bytes(&file_path, &bytes)?;
         }
 
-        let path_str = to_slash_path(&file_path);
+        let path_str = normalize_slash_path(&file_path);
         let replaced_segment = matched.as_str().replacen(data_url, &path_str, 1);
         output.push_str(&replaced_segment);
         last_end = matched.end();
@@ -68,7 +68,7 @@ fn replace_inline_base64_images_impl(markdown: &str) -> AnyResult<String> {
     Ok(output)
 }
 
-fn inline_local_images_to_base64_impl(markdown: &str) -> AnyResult<String> {
+fn inline_local_images_to_base64_impl(markdown: &str) -> anyhow::Result<String> {
     if !markdown.contains('!') || !markdown.contains("](") {
         return Ok(markdown.to_string());
     }
@@ -94,7 +94,7 @@ fn inline_local_images_to_base64_impl(markdown: &str) -> AnyResult<String> {
             continue;
         }
 
-        let path = resolve_local_path(url);
+        let path = resolve_absolute(url);
         match fs::read(&path) {
             Ok(bytes) => {
                 let mime = guess_mime_from_path(&path);
@@ -115,28 +115,18 @@ fn inline_local_images_to_base64_impl(markdown: &str) -> AnyResult<String> {
     Ok(output)
 }
 
-fn resolve_images_dir() -> AnyResult<PathBuf> {
-    if let Ok(explicit) = env::var("KELIVO_SANITIZER_IMAGE_DIR") {
-        let path = PathBuf::from(explicit);
-        fs::create_dir_all(&path).context("unable to create configured images directory")?;
-        return Ok(path);
-    }
-
-    if let Some(user_dirs) = UserDirs::new() {
-        if let Some(documents) = user_dirs.document_dir() {
-            let images_dir = documents.join("images");
-            fs::create_dir_all(&images_dir)
-                .context("unable to create documents/images directory")?;
-            return Ok(images_dir);
-        }
-    }
-
-    let fallback = env::temp_dir().join("kelivo").join("images");
-    fs::create_dir_all(&fallback).context("unable to create fallback images directory")?;
-    Ok(fallback)
+fn resolve_images_dir() -> anyhow::Result<PathBuf> {
+    let dir = config::sanitizer_image_dir();
+    fs::create_dir_all(&dir).with_context(|| {
+        format!(
+            "unable to create sanitizer image directory {}",
+            dir.display()
+        )
+    })?;
+    Ok(dir)
 }
 
-fn parse_data_url(data_url: &str) -> AnyResult<(String, String)> {
+fn parse_data_url(data_url: &str) -> anyhow::Result<(String, String)> {
     if !data_url.starts_with("data:") {
         return Err(anyhow!("data url missing data: prefix"));
     }
@@ -164,32 +154,13 @@ fn normalize_base64(data: &str) -> String {
         .collect::<String>()
 }
 
-fn decode_base64(payload: &str) -> AnyResult<Vec<u8>> {
+fn decode_base64(payload: &str) -> anyhow::Result<Vec<u8>> {
     decode_b64(payload).map_err(|err| anyhow!("failed to decode base64 payload: {err}"))
-}
-
-fn write_bytes(path: &Path, bytes: &[u8]) -> AnyResult<()> {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)
-            .with_context(|| format!("failed to create parent directory for {}", path.display()))?;
-    }
-
-    let mut file =
-        File::create(path).with_context(|| format!("failed to create file {}", path.display()))?;
-    file.write_all(bytes)
-        .with_context(|| format!("failed to write file {}", path.display()))?;
-    file.flush()
-        .with_context(|| format!("failed to flush file {}", path.display()))?;
-    Ok(())
 }
 
 fn build_file_name(normalized_payload: &str, extension: &str) -> String {
     let digest = Uuid::new_v5(&Uuid::NAMESPACE_URL, normalized_payload.as_bytes());
     format!("img_{}.{}", digest, extension)
-}
-
-fn to_slash_path(path: &Path) -> String {
-    path.to_string_lossy().replace('\\', "/")
 }
 
 fn mime_to_extension(mime: &str) -> &'static str {
@@ -200,38 +171,10 @@ fn mime_to_extension(mime: &str) -> &'static str {
         "image/gif" => "gif",
         "image/bmp" => "bmp",
         "image/svg" | "image/svg+xml" => "svg",
-        "image/x-icon" | "image/vnd.microsoft.icon" => "ico",
+        "image/x-icon" => "ico",
         "image/avif" => "avif",
         "image/heic" | "image/heif" => "heic",
         _ => "png",
-    }
-}
-
-fn is_local_image_path(path: &str) -> bool {
-    if path.is_empty() {
-        return false;
-    }
-
-    let lower = path.to_ascii_lowercase();
-    if lower.starts_with("http://")
-        || lower.starts_with("https://")
-        || lower.starts_with("data:")
-        || lower.starts_with("asset:")
-    {
-        return false;
-    }
-
-    lower.starts_with("file://")
-        || path.starts_with('/')
-        || path.contains(':')
-        || path.contains('\\')
-}
-
-fn resolve_local_path(path: &str) -> PathBuf {
-    if let Some(rest) = path.strip_prefix("file://") {
-        PathBuf::from(rest)
-    } else {
-        PathBuf::from(path)
     }
 }
 
@@ -253,27 +196,35 @@ fn guess_mime_from_path(path: &Path) -> &'static str {
     }
 }
 
+fn is_local_image_path(url: &str) -> bool {
+    let lower = url.to_ascii_lowercase();
+    if lower.starts_with("http://") || lower.starts_with("https://") {
+        return false;
+    }
+
+    lower.starts_with("file://") || url.starts_with('/') || url.contains(':') || url.contains('\\')
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
-    use std::path::{Path, PathBuf};
+    use std::env;
     use tempfile::tempdir;
 
     fn set_test_images_dir(dir: &Path) {
         env::set_var(
-            "KELIVO_SANITIZER_IMAGE_DIR",
+            config::sanitizer_env_var_name(),
             dir.to_string_lossy().to_string(),
         );
     }
 
     fn unset_test_images_dir() {
-        env::remove_var("KELIVO_SANITIZER_IMAGE_DIR");
+        env::remove_var(config::sanitizer_env_var_name());
     }
 
     #[test]
     fn replaces_inline_base64_images_and_writes_files() {
-        let temp = tempdir().expect("create temp dir");
+        let temp = tempdir().expect("temp dir");
         let images_dir = temp.path().join("images");
         set_test_images_dir(&images_dir);
 
@@ -281,7 +232,7 @@ mod tests {
         let payload_b64 = encode_b64(&payload_bytes);
         let markdown = format!("# Title\n![sample](data:image/png;base64,{payload_b64})\n");
 
-        let result = replace_inline_base64_images(markdown.clone()).expect("ok result");
+        let result = replace_inline_base64_images(&markdown).expect("ok result");
         unset_test_images_dir();
 
         assert!(result.contains("/images/"));
@@ -301,25 +252,66 @@ mod tests {
 
     #[test]
     fn returns_error_on_invalid_base64_payload() {
-        let temp = tempdir().expect("create temp dir");
+        let temp = tempdir().expect("temp dir");
         let images_dir = temp.path().join("images");
         set_test_images_dir(&images_dir);
 
         assert!(decode_b64("====").is_err());
         let markdown = "![bad](data:image/png;base64,====)".to_string();
-        let result = replace_inline_base64_images(markdown.clone());
+        let result = replace_inline_base64_images(&markdown);
         unset_test_images_dir();
         assert!(result.is_err());
     }
 
     #[test]
+    fn reuses_existing_files_for_identical_payloads() {
+        let temp = tempdir().expect("temp dir");
+        let images_dir = temp.path().join("images");
+        set_test_images_dir(&images_dir);
+
+        let payload = encode_b64(b"duplicate");
+        let markdown = format!(
+            "![one](data:image/png;base64,{payload})\n![two](data:image/png;base64,{payload})"
+        );
+
+        let result = replace_inline_base64_images(&markdown).expect("ok result");
+        unset_test_images_dir();
+
+        let matches: Vec<_> = INLINE_IMAGE_RE
+            .captures_iter(&result)
+            .filter_map(|cap| cap.get(1).map(|m| m.as_str().to_string()))
+            .collect();
+        assert_eq!(matches.len(), 2);
+        assert_eq!(matches[0], matches[1]);
+    }
+
+    #[test]
+    fn supports_extended_mime_types() {
+        let temp = tempdir().expect("temp dir");
+        set_test_images_dir(temp.path());
+
+        for (mime, expected_ext) in [
+            ("image/svg+xml", "svg"),
+            ("image/avif", "avif"),
+            ("image/heic", "heic"),
+        ] {
+            let payload = encode_b64(b"img");
+            let markdown = format!("![x](data:{mime};base64,{payload})");
+            let result = replace_inline_base64_images(&markdown).expect("ok result");
+            assert!(result.contains(expected_ext));
+        }
+
+        unset_test_images_dir();
+    }
+
+    #[test]
     fn inlines_local_images_to_base64() {
-        let temp = tempdir().expect("create temp dir");
+        let temp = tempdir().expect("temp dir");
         let file_path = temp.path().join("sample.png");
         fs::write(&file_path, b"png-bytes").expect("write sample file");
 
         let markdown = format!("![alt]({})", file_path.to_string_lossy());
-        let result = inline_local_images_to_base64(markdown.clone()).expect("ok result");
+        let result = inline_local_images_to_base64(&markdown).expect("ok result");
 
         assert!(result.contains("data:image/png;base64"));
 
@@ -334,14 +326,14 @@ mod tests {
     #[test]
     fn skips_nonexistent_local_files() {
         let markdown = "![alt](/tmp/does_not_exist.png)".to_string();
-        let result = inline_local_images_to_base64(markdown.clone()).expect("ok result");
+        let result = inline_local_images_to_base64(&markdown).expect("ok result");
         assert_eq!(result, markdown);
     }
 
     #[test]
     fn leaves_remote_urls_untouched() {
         let markdown = "![alt](https://example.com/image.png)".to_string();
-        let result = inline_local_images_to_base64(markdown.clone()).expect("ok result");
+        let result = inline_local_images_to_base64(&markdown).expect("ok result");
         assert_eq!(result, markdown);
     }
 }

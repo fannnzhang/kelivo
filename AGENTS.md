@@ -32,6 +32,7 @@ Principles
 - 确认型通知（actions）发送一次即可 **强制等待结果**
 - 回复型通知（reply）发送一次即可 **强制等待结果**
 
+对于非confirm型的通知类调用 **强制要求使用** `> /dev/null 2>&1 &`用于忽略alerter命令的结果 否则会持续阻塞等待
 ---
 
 # 📁 Project Structure & Module Organization

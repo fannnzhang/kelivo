@@ -6,10 +6,6 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `build_file_name`, `decode_base64`, `guess_mime_from_path`, `inline_local_images_to_base64_impl`, `is_local_image_path`, `mime_to_extension`, `normalize_base64`, `parse_data_url`, `replace_inline_base64_images_impl`, `resolve_images_dir`, `resolve_local_path`, `to_slash_path`, `write_bytes`
-// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `INLINE_BASE64_RE`, `INLINE_IMAGE_RE`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `deref`, `deref`, `initialize`, `initialize`
-
 Future<String> replaceInlineBase64Images({required String markdown}) => RustLib
     .instance
     .api

@@ -7,8 +7,11 @@
 // ignore_for_file: argument_type_not_assignable
 
 import 'api/backup.dart';
+import 'api/db.dart';
 import 'api/document_parser.dart';
 import 'api/google_auth.dart';
+import 'api/llm.dart';
+import 'api/llm_types.dart';
 import 'api/markdown_sanitizer.dart';
 import 'api/simple.dart';
 import 'dart:async';
@@ -25,6 +28,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   });
 
   @protected
+  AnyhowException dco_decode_AnyhowException(dynamic raw);
+
+  @protected
+  Map<String, String> dco_decode_Map_String_String_None(dynamic raw);
+
+  @protected
+  Map<String, int> dco_decode_Map_String_i_32_None(dynamic raw);
+
+  @protected
+  RustStreamSink<String> dco_decode_StreamSink_String_Dco(dynamic raw);
+
+  @protected
   String dco_decode_String(dynamic raw);
 
   @protected
@@ -37,6 +52,72 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool dco_decode_bool(dynamic raw);
 
   @protected
+  double dco_decode_box_autoadd_f_32(dynamic raw);
+
+  @protected
+  FrbChatRequest dco_decode_box_autoadd_frb_chat_request(dynamic raw);
+
+  @protected
+  FrbConversation dco_decode_box_autoadd_frb_conversation(dynamic raw);
+
+  @protected
+  FrbDbSnapshot dco_decode_box_autoadd_frb_db_snapshot(dynamic raw);
+
+  @protected
+  FrbMessage dco_decode_box_autoadd_frb_message(dynamic raw);
+
+  @protected
+  FrbToolEvent dco_decode_box_autoadd_frb_tool_event(dynamic raw);
+
+  @protected
+  int dco_decode_box_autoadd_i_32(dynamic raw);
+
+  @protected
+  int dco_decode_box_autoadd_u_32(dynamic raw);
+
+  @protected
+  double dco_decode_f_32(dynamic raw);
+
+  @protected
+  FrbChatMessage dco_decode_frb_chat_message(dynamic raw);
+
+  @protected
+  FrbChatRequest dco_decode_frb_chat_request(dynamic raw);
+
+  @protected
+  FrbChatResponse dco_decode_frb_chat_response(dynamic raw);
+
+  @protected
+  FrbChatRole dco_decode_frb_chat_role(dynamic raw);
+
+  @protected
+  FrbChatUsage dco_decode_frb_chat_usage(dynamic raw);
+
+  @protected
+  FrbConversation dco_decode_frb_conversation(dynamic raw);
+
+  @protected
+  FrbDbInfo dco_decode_frb_db_info(dynamic raw);
+
+  @protected
+  FrbDbSnapshot dco_decode_frb_db_snapshot(dynamic raw);
+
+  @protected
+  FrbImportSummary dco_decode_frb_import_summary(dynamic raw);
+
+  @protected
+  FrbMessage dco_decode_frb_message(dynamic raw);
+
+  @protected
+  FrbToolEvent dco_decode_frb_tool_event(dynamic raw);
+
+  @protected
+  int dco_decode_i_32(dynamic raw);
+
+  @protected
+  PlatformInt64 dco_decode_i_64(dynamic raw);
+
+  @protected
   List<String> dco_decode_list_String(dynamic raw);
 
   @protected
@@ -46,16 +127,55 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<BackupZipEntryInput> dco_decode_list_backup_zip_entry_input(dynamic raw);
 
   @protected
+  List<FrbChatMessage> dco_decode_list_frb_chat_message(dynamic raw);
+
+  @protected
+  List<FrbConversation> dco_decode_list_frb_conversation(dynamic raw);
+
+  @protected
+  List<FrbMessage> dco_decode_list_frb_message(dynamic raw);
+
+  @protected
+  List<FrbToolEvent> dco_decode_list_frb_tool_event(dynamic raw);
+
+  @protected
   List<int> dco_decode_list_prim_u_8_loose(dynamic raw);
 
   @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
 
   @protected
+  List<(String, int)> dco_decode_list_record_string_i_32(dynamic raw);
+
+  @protected
+  List<(String, String)> dco_decode_list_record_string_string(dynamic raw);
+
+  @protected
   List<WebDavEntry> dco_decode_list_web_dav_entry(dynamic raw);
 
   @protected
   String? dco_decode_opt_String(dynamic raw);
+
+  @protected
+  double? dco_decode_opt_box_autoadd_f_32(dynamic raw);
+
+  @protected
+  FrbConversation? dco_decode_opt_box_autoadd_frb_conversation(dynamic raw);
+
+  @protected
+  int? dco_decode_opt_box_autoadd_i_32(dynamic raw);
+
+  @protected
+  int? dco_decode_opt_box_autoadd_u_32(dynamic raw);
+
+  @protected
+  (String, int) dco_decode_record_string_i_32(dynamic raw);
+
+  @protected
+  (String, String) dco_decode_record_string_string(dynamic raw);
+
+  @protected
+  int dco_decode_u_32(dynamic raw);
 
   @protected
   BigInt dco_decode_u_64(dynamic raw);
@@ -68,6 +188,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   WebDavEntry dco_decode_web_dav_entry(dynamic raw);
+
+  @protected
+  AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer);
+
+  @protected
+  Map<String, String> sse_decode_Map_String_String_None(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  Map<String, int> sse_decode_Map_String_i_32_None(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustStreamSink<String> sse_decode_StreamSink_String_Dco(
+    SseDeserializer deserializer,
+  );
 
   @protected
   String sse_decode_String(SseDeserializer deserializer);
@@ -84,6 +222,80 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool sse_decode_bool(SseDeserializer deserializer);
 
   @protected
+  double sse_decode_box_autoadd_f_32(SseDeserializer deserializer);
+
+  @protected
+  FrbChatRequest sse_decode_box_autoadd_frb_chat_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FrbConversation sse_decode_box_autoadd_frb_conversation(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FrbDbSnapshot sse_decode_box_autoadd_frb_db_snapshot(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  FrbMessage sse_decode_box_autoadd_frb_message(SseDeserializer deserializer);
+
+  @protected
+  FrbToolEvent sse_decode_box_autoadd_frb_tool_event(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  int sse_decode_box_autoadd_i_32(SseDeserializer deserializer);
+
+  @protected
+  int sse_decode_box_autoadd_u_32(SseDeserializer deserializer);
+
+  @protected
+  double sse_decode_f_32(SseDeserializer deserializer);
+
+  @protected
+  FrbChatMessage sse_decode_frb_chat_message(SseDeserializer deserializer);
+
+  @protected
+  FrbChatRequest sse_decode_frb_chat_request(SseDeserializer deserializer);
+
+  @protected
+  FrbChatResponse sse_decode_frb_chat_response(SseDeserializer deserializer);
+
+  @protected
+  FrbChatRole sse_decode_frb_chat_role(SseDeserializer deserializer);
+
+  @protected
+  FrbChatUsage sse_decode_frb_chat_usage(SseDeserializer deserializer);
+
+  @protected
+  FrbConversation sse_decode_frb_conversation(SseDeserializer deserializer);
+
+  @protected
+  FrbDbInfo sse_decode_frb_db_info(SseDeserializer deserializer);
+
+  @protected
+  FrbDbSnapshot sse_decode_frb_db_snapshot(SseDeserializer deserializer);
+
+  @protected
+  FrbImportSummary sse_decode_frb_import_summary(SseDeserializer deserializer);
+
+  @protected
+  FrbMessage sse_decode_frb_message(SseDeserializer deserializer);
+
+  @protected
+  FrbToolEvent sse_decode_frb_tool_event(SseDeserializer deserializer);
+
+  @protected
+  int sse_decode_i_32(SseDeserializer deserializer);
+
+  @protected
+  PlatformInt64 sse_decode_i_64(SseDeserializer deserializer);
+
+  @protected
   List<String> sse_decode_list_String(SseDeserializer deserializer);
 
   @protected
@@ -97,16 +309,69 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<FrbChatMessage> sse_decode_list_frb_chat_message(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<FrbConversation> sse_decode_list_frb_conversation(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<FrbMessage> sse_decode_list_frb_message(SseDeserializer deserializer);
+
+  @protected
+  List<FrbToolEvent> sse_decode_list_frb_tool_event(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<int> sse_decode_list_prim_u_8_loose(SseDeserializer deserializer);
 
   @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
 
   @protected
+  List<(String, int)> sse_decode_list_record_string_i_32(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<(String, String)> sse_decode_list_record_string_string(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<WebDavEntry> sse_decode_list_web_dav_entry(SseDeserializer deserializer);
 
   @protected
   String? sse_decode_opt_String(SseDeserializer deserializer);
+
+  @protected
+  double? sse_decode_opt_box_autoadd_f_32(SseDeserializer deserializer);
+
+  @protected
+  FrbConversation? sse_decode_opt_box_autoadd_frb_conversation(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  int? sse_decode_opt_box_autoadd_i_32(SseDeserializer deserializer);
+
+  @protected
+  int? sse_decode_opt_box_autoadd_u_32(SseDeserializer deserializer);
+
+  @protected
+  (String, int) sse_decode_record_string_i_32(SseDeserializer deserializer);
+
+  @protected
+  (String, String) sse_decode_record_string_string(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  int sse_decode_u_32(SseDeserializer deserializer);
 
   @protected
   BigInt sse_decode_u_64(SseDeserializer deserializer);
@@ -121,7 +386,28 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   WebDavEntry sse_decode_web_dav_entry(SseDeserializer deserializer);
 
   @protected
-  int sse_decode_i_32(SseDeserializer deserializer);
+  void sse_encode_AnyhowException(
+    AnyhowException self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_Map_String_String_None(
+    Map<String, String> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_Map_String_i_32_None(
+    Map<String, int> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_StreamSink_String_Dco(
+    RustStreamSink<String> self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_String(String self, SseSerializer serializer);
@@ -142,6 +428,102 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_bool(bool self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_f_32(double self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_frb_chat_request(
+    FrbChatRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_frb_conversation(
+    FrbConversation self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_frb_db_snapshot(
+    FrbDbSnapshot self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_frb_message(
+    FrbMessage self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_frb_tool_event(
+    FrbToolEvent self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_i_32(int self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_u_32(int self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_f_32(double self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_frb_chat_message(
+    FrbChatMessage self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_frb_chat_request(
+    FrbChatRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_frb_chat_response(
+    FrbChatResponse self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_frb_chat_role(FrbChatRole self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_frb_chat_usage(FrbChatUsage self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_frb_conversation(
+    FrbConversation self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_frb_db_info(FrbDbInfo self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_frb_db_snapshot(FrbDbSnapshot self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_frb_import_summary(
+    FrbImportSummary self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_frb_message(FrbMessage self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_frb_tool_event(FrbToolEvent self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_i_32(int self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer);
+
+  @protected
   void sse_encode_list_String(List<String> self, SseSerializer serializer);
 
   @protected
@@ -157,11 +539,47 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_frb_chat_message(
+    List<FrbChatMessage> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_frb_conversation(
+    List<FrbConversation> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_frb_message(
+    List<FrbMessage> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_frb_tool_event(
+    List<FrbToolEvent> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_prim_u_8_loose(List<int> self, SseSerializer serializer);
 
   @protected
   void sse_encode_list_prim_u_8_strict(
     Uint8List self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_record_string_i_32(
+    List<(String, int)> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_record_string_string(
+    List<(String, String)> self,
     SseSerializer serializer,
   );
 
@@ -175,6 +593,36 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_opt_String(String? self, SseSerializer serializer);
 
   @protected
+  void sse_encode_opt_box_autoadd_f_32(double? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_frb_conversation(
+    FrbConversation? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_i_32(int? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_u_32(int? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_record_string_i_32(
+    (String, int) self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_record_string_string(
+    (String, String) self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_u_32(int self, SseSerializer serializer);
+
+  @protected
   void sse_encode_u_64(BigInt self, SseSerializer serializer);
 
   @protected
@@ -185,9 +633,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_web_dav_entry(WebDavEntry self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_i_32(int self, SseSerializer serializer);
 }
 
 // Section: wire_class

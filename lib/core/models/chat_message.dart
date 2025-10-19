@@ -1,5 +1,6 @@
 import 'package:hive/hive.dart';
 import 'package:uuid/uuid.dart';
+import 'package:Kelivo/src/rust/api/db.dart' as rust_db;
 
 part 'chat_message.g.dart';
 
@@ -161,6 +162,53 @@ class ChatMessage extends HiveObject {
       reasoningSegmentsJson: json['reasoningSegmentsJson'] as String?,
       groupId: json['groupId'] as String?,
       version: (json['version'] as int?) ?? 0,
+    );
+  }
+}
+
+extension ChatMessageRustExtensions on ChatMessage {
+  rust_db.FrbMessage toFrb() {
+    return rust_db.FrbMessage(
+      id: id,
+      conversationId: conversationId,
+      role: role,
+      content: content,
+      timestamp: timestamp.toIso8601String(),
+      modelId: modelId,
+      providerId: providerId,
+      totalTokens: totalTokens,
+      isStreaming: isStreaming,
+      reasoningText: reasoningText,
+      reasoningStartAt: reasoningStartAt?.toIso8601String(),
+      reasoningFinishedAt: reasoningFinishedAt?.toIso8601String(),
+      translation: translation,
+      reasoningSegmentsJson: reasoningSegmentsJson,
+      groupId: groupId,
+      version: version,
+    );
+  }
+
+  static ChatMessage fromFrb(rust_db.FrbMessage frb) {
+    return ChatMessage(
+      id: frb.id,
+      role: frb.role,
+      content: frb.content,
+      timestamp: DateTime.parse(frb.timestamp),
+      modelId: frb.modelId,
+      providerId: frb.providerId,
+      totalTokens: frb.totalTokens,
+      conversationId: frb.conversationId,
+      isStreaming: frb.isStreaming,
+      reasoningText: frb.reasoningText,
+      reasoningStartAt:
+          frb.reasoningStartAt != null ? DateTime.parse(frb.reasoningStartAt!) : null,
+      reasoningFinishedAt: frb.reasoningFinishedAt != null
+          ? DateTime.parse(frb.reasoningFinishedAt!)
+          : null,
+      translation: frb.translation,
+      reasoningSegmentsJson: frb.reasoningSegmentsJson,
+      groupId: frb.groupId,
+      version: frb.version,
     );
   }
 }

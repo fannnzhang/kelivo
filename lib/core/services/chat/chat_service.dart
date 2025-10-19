@@ -6,6 +6,9 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../../models/chat_message.dart';
 import '../../models/conversation.dart';
 import '../../../utils/sandbox_path_resolver.dart';
+import '../../services/rust_db_bridge.dart';
+import '../../../config/feature_flags.dart';
+import 'package:Kelivo/src/rust/api/db.dart' as rust_db;
 
 class ChatService extends ChangeNotifier {
   static const String _conversationsBoxName = 'conversations';
@@ -51,6 +54,10 @@ class ChatService extends ChangeNotifier {
 
     // Migrate any persisted message content that references old iOS sandbox paths
     await _migrateSandboxPaths();
+
+    if (FeatureFlags.useRustDb) {
+      await _initRustDb();
+    }
 
     _initialized = true;
     notifyListeners();
@@ -106,6 +113,7 @@ class ChatService extends ChangeNotifier {
     );
 
     await _conversationsBox.put(conversation.id, conversation);
+    await _mirrorConversation(conversation);
     _currentConversationId = conversation.id;
     notifyListeners();
     return conversation;
@@ -172,6 +180,7 @@ class ChatService extends ChangeNotifier {
 
     // Delete conversation
     await _conversationsBox.delete(id);
+    await _deleteConversationInRust(id);
 
     // Remove cached messages
     // Clear cache
@@ -272,11 +281,53 @@ class ChatService extends ChangeNotifier {
     } catch (_) {}
   }
 
+  Future<void> _initRustDb() async {
+    if (!FeatureFlags.useRustDb) return;
+    final docs = await getApplicationDocumentsDirectory();
+    final dbPath = p.join(docs.path, 'kelivo_core.db');
+    await RustDbBridge.instance.init(dbPath);
+    await _syncAllToRustDb();
+  }
+
+  Future<void> _mirrorConversation(Conversation conversation) async {
+    if (!FeatureFlags.useRustDb || !RustDbBridge.instance.isInitialized) return;
+    try {
+      await RustDbBridge.instance.upsertConversation(conversation.toFrb());
+    } catch (_) {}
+  }
+
+  Future<void> _mirrorMessage(ChatMessage message) async {
+    if (!FeatureFlags.useRustDb || !RustDbBridge.instance.isInitialized) return;
+    try {
+      await RustDbBridge.instance.upsertMessage(message.toFrb());
+    } catch (_) {}
+  }
+
+  Future<void> _deleteConversationInRust(String conversationId) async {
+    if (!FeatureFlags.useRustDb || !RustDbBridge.instance.isInitialized) return;
+    try {
+      await RustDbBridge.instance.deleteConversation(conversationId);
+    } catch (_) {}
+  }
+
+  Future<void> _syncAllToRustDb() async {
+    if (!FeatureFlags.useRustDb || !RustDbBridge.instance.isInitialized) return;
+    try {
+      final snapshot = rust_db.FrbDbSnapshot(
+        conversations: _conversationsBox.values.map((c) => c.toFrb()).toList(),
+        messages: _messagesBox.values.map((m) => m.toFrb()).toList(),
+        toolEvents: const <rust_db.FrbToolEvent>[],
+      );
+      await RustDbBridge.instance.importSnapshot(snapshot);
+    } catch (_) {}
+  }
+
   Future<void> restoreConversation(Conversation conversation, List<ChatMessage> messages) async {
     if (!_initialized) await init();
     // Restore messages first
     for (final m in messages) {
       await _messagesBox.put(m.id, m);
+      await _mirrorMessage(m);
     }
     // Ensure messageIds are in the same order
     final ids = messages.map((m) => m.id).toList();
@@ -293,6 +344,7 @@ class ChatService extends ChangeNotifier {
       versionSelections: Map<String, int>.from(conversation.versionSelections),
     );
     await _conversationsBox.put(restored.id, restored);
+    await _mirrorConversation(restored);
 
     // Update caches
     _messagesCache[restored.id] = List.of(messages);
@@ -306,6 +358,7 @@ class ChatService extends ChangeNotifier {
     
     // Add message to box
     await _messagesBox.put(message.id, message);
+    await _mirrorMessage(message);
     
     // Update conversation
     final conversation = _conversationsBox.get(conversationId);
@@ -314,6 +367,7 @@ class ChatService extends ChangeNotifier {
         conversation.messageIds.add(message.id);
         // Keep original updatedAt during restore
         await conversation.save();
+        await _mirrorConversation(conversation);
       }
     }
     
@@ -378,6 +432,7 @@ class ChatService extends ChangeNotifier {
     conversation.title = newTitle;
     conversation.updatedAt = DateTime.now();
     await conversation.save();
+    await _mirrorConversation(conversation);
     notifyListeners();
   }
 
@@ -395,6 +450,7 @@ class ChatService extends ChangeNotifier {
 
     conversation.isPinned = !conversation.isPinned;
     await conversation.save();
+    await _mirrorConversation(conversation);
     notifyListeners();
   }
 
@@ -421,10 +477,12 @@ class ChatService extends ChangeNotifier {
       if (draft != null) {
         await _conversationsBox.put(draft.id, draft);
         conversation = draft;
+        await _mirrorConversation(conversation);
       } else {
         // Create a new one on the fly as a fallback
         conversation = Conversation(id: conversationId, title: _defaultConversationTitle);
         await _conversationsBox.put(conversationId, conversation);
+        await _mirrorConversation(conversation);
       }
     }
 
@@ -444,10 +502,12 @@ class ChatService extends ChangeNotifier {
     );
 
     await _messagesBox.put(message.id, message);
+    await _mirrorMessage(message);
     
     conversation.messageIds.add(message.id);
     conversation.updatedAt = DateTime.now();
     await conversation.save();
+    await _mirrorConversation(conversation);
 
     // Update cache
     if (_messagesCache.containsKey(conversationId)) {
@@ -485,6 +545,7 @@ class ChatService extends ChangeNotifier {
     );
 
     await _messagesBox.put(messageId, updatedMessage);
+    await _mirrorMessage(updatedMessage);
 
     // Update cache
     final conversationId = message.conversationId;
@@ -709,6 +770,7 @@ class ChatService extends ChangeNotifier {
     if ((defaultTitle ?? '').isNotEmpty) c.title = defaultTitle!;
     c.updatedAt = DateTime.now();
     await c.save();
+    await _mirrorConversation(c);
     notifyListeners();
     return c;
   }
@@ -723,9 +785,11 @@ class ChatService extends ChangeNotifier {
     if (conversation != null) {
       conversation.messageIds.remove(messageId);
       await conversation.save();
+      await _mirrorConversation(conversation);
     }
 
     await _messagesBox.delete(messageId);
+    await _syncAllToRustDb();
     // Remove any tool events linked to this assistant message
     if (message.role == 'assistant') {
       try { await _toolEventsBox.delete(message.id); } catch (_) {}
@@ -756,6 +820,7 @@ class ChatService extends ChangeNotifier {
     _messagesCache.clear();
     _draftConversations.clear();
     _currentConversationId = null;
+    await _syncAllToRustDb();
     // Remove uploads directory completely
     try {
       final docs = await getApplicationDocumentsDirectory();

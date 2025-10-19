@@ -1,8 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:Kelivo/src/rust/api/llm.dart' as rust_llm;
+import 'package:Kelivo/src/rust/api/llm_types.dart' as rust_llm_types;
 import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart';
+import 'package:uuid/uuid.dart';
+import '../../../config/feature_flags.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/model_provider.dart';
 import '../../models/token_usage.dart';
@@ -215,6 +219,24 @@ class ChatApiService {
     Map<String, String>? extraHeaders,
     Map<String, dynamic>? extraBody,
   }) async* {
+    if (FeatureFlags.useRustLlm) {
+      yield* _sendRustStream(
+        config: config,
+        modelId: modelId,
+        messages: messages,
+        userImagePaths: userImagePaths,
+        thinkingBudget: thinkingBudget,
+        temperature: temperature,
+        topP: topP,
+        maxTokens: maxTokens,
+        tools: tools,
+        onToolCall: onToolCall,
+        extraHeaders: extraHeaders,
+        extraBody: extraBody,
+      );
+      return;
+    }
+
     final kind = ProviderConfig.classify(config.id, explicitType: config.providerType);
     final client = _clientFor(config);
 
@@ -281,6 +303,35 @@ class ChatApiService {
     Map<String, String>? extraHeaders,
     Map<String, dynamic>? extraBody,
   }) async {
+    if (FeatureFlags.useRustLlm) {
+      final requestId = const Uuid().v4();
+      final metadata = _buildRustMetadata(
+        config: config,
+        userImagePaths: null,
+        tools: null,
+        thinkingBudget: null,
+        extraHeaders: extraHeaders,
+        extraBody: extraBody,
+      );
+      final request = _createRustRequest(
+        requestId: requestId,
+        config: config,
+        modelId: modelId,
+        messages: [
+          rust_llm_types.FrbChatMessage(
+            role: rust_llm_types.FrbChatRole.user,
+            parts: <String>[prompt],
+          ),
+        ],
+        temperature: 0.3,
+        topP: null,
+        maxTokens: null,
+        metadata: metadata,
+      );
+      final response = await rust_llm.llmChat(request: request);
+      return response.outputText;
+    }
+
     final kind = ProviderConfig.classify(config.id, explicitType: config.providerType);
     final client = _clientFor(config);
     try {
@@ -3124,6 +3175,342 @@ class ChatApiService {
       }
     }
     return null;
+  }
+
+  static Stream<ChatStreamChunk> _sendRustStream({
+    required ProviderConfig config,
+    required String modelId,
+    required List<Map<String, dynamic>> messages,
+    List<String>? userImagePaths,
+    int? thinkingBudget,
+    double? temperature,
+    double? topP,
+    int? maxTokens,
+    List<Map<String, dynamic>>? tools,
+    Future<String> Function(String name, Map<String, dynamic> args)? onToolCall,
+    Map<String, String>? extraHeaders,
+    Map<String, dynamic>? extraBody,
+  }) {
+    if (onToolCall != null) {
+      // Tool-call streaming is not yet supported on the Rust backend; keep hook for parity.
+    }
+
+    final controller = StreamController<ChatStreamChunk>();
+    final requestId = const Uuid().v4();
+    final metadata = _buildRustMetadata(
+      config: config,
+      userImagePaths: userImagePaths,
+      tools: tools,
+      thinkingBudget: thinkingBudget,
+      extraHeaders: extraHeaders,
+      extraBody: extraBody,
+    );
+    final request = _createRustRequest(
+      requestId: requestId,
+      config: config,
+      modelId: modelId,
+      messages: _buildRustMessages(messages),
+      temperature: temperature,
+      topP: topP,
+      maxTokens: maxTokens,
+      metadata: metadata,
+    );
+
+    TokenUsage usageState = const TokenUsage();
+    bool finished = false;
+    bool emittedDelta = false;
+    StreamSubscription<String>? subscription;
+
+    void closeSafely() {
+      if (!controller.isClosed) {
+        unawaited(controller.close());
+      }
+    }
+
+    subscription = rust_llm.llmChatStream(request: request).listen(
+      (payload) {
+        try {
+          final dynamic decoded = jsonDecode(payload);
+          if (decoded is! Map<String, dynamic>) {
+            return;
+          }
+          final type = decoded['type']?.toString();
+          final data = decoded['data'];
+          switch (type) {
+            case 'Delta':
+              final map = (data is Map ? data.cast<String, dynamic>() : const <String, dynamic>{});
+              final content = (map['content'] ?? '').toString();
+              if (content.isEmpty) return;
+              emittedDelta = true;
+              controller.add(
+                ChatStreamChunk(
+                  content: content,
+                  reasoning: null,
+                  isDone: false,
+                  totalTokens: usageState.totalTokens,
+                  usage: usageState,
+                  toolCalls: null,
+                  toolResults: null,
+                ),
+              );
+              break;
+            case 'Usage':
+              if (data is Map) {
+                usageState = usageState.merge(_usageFromMap(data.cast<String, dynamic>()));
+              }
+              break;
+            case 'Completed':
+              if (data is Map<String, dynamic>) {
+                final usage = data['usage'];
+                if (usage is Map<String, dynamic>) {
+                  usageState = usageState.merge(_usageFromMap(usage));
+                }
+                final outputText = (data['output_text'] ?? '').toString();
+                if (!emittedDelta && outputText.isNotEmpty) {
+                  controller.add(
+                    ChatStreamChunk(
+                      content: outputText,
+                      reasoning: null,
+                      isDone: false,
+                      totalTokens: usageState.totalTokens,
+                      usage: usageState,
+                      toolCalls: null,
+                      toolResults: null,
+                    ),
+                  );
+                }
+              }
+              controller.add(
+                ChatStreamChunk(
+                  content: '',
+                  reasoning: null,
+                  isDone: true,
+                  totalTokens: usageState.totalTokens,
+                  usage: usageState,
+                  toolCalls: null,
+                  toolResults: null,
+                ),
+              );
+              finished = true;
+              closeSafely();
+              break;
+            case 'Cancelled':
+              controller.add(
+                ChatStreamChunk(
+                  content: '',
+                  reasoning: null,
+                  isDone: true,
+                  totalTokens: usageState.totalTokens,
+                  usage: usageState,
+                  toolCalls: null,
+                  toolResults: null,
+                ),
+              );
+              finished = true;
+              closeSafely();
+              break;
+            case 'Error':
+              final message = data?.toString() ?? 'unknown rust error';
+              controller.addError(StateError('Rust LLM error: $message'));
+              finished = true;
+              closeSafely();
+              break;
+            default:
+              break;
+          }
+        } catch (err, stack) {
+          controller.addError(StateError('Failed to parse Rust LLM stream: $err'), stack);
+        }
+      },
+      onError: (Object err, StackTrace stack) {
+        controller.addError(err, stack);
+        finished = true;
+        closeSafely();
+      },
+      onDone: () {
+        if (!finished) {
+          controller.add(
+            ChatStreamChunk(
+              content: '',
+              reasoning: null,
+              isDone: true,
+              totalTokens: usageState.totalTokens,
+              usage: usageState,
+              toolCalls: null,
+              toolResults: null,
+            ),
+          );
+          closeSafely();
+        }
+      },
+      cancelOnError: false,
+    );
+
+    controller.onCancel = () async {
+      if (!finished) {
+        try {
+          await rust_llm.llmCancel(requestId: requestId);
+        } catch (_) {}
+        finished = true;
+      }
+      await subscription?.cancel();
+    };
+
+    return controller.stream;
+  }
+
+  static rust_llm_types.FrbChatRequest _createRustRequest({
+    required String requestId,
+    required ProviderConfig config,
+    required String modelId,
+    required List<rust_llm_types.FrbChatMessage> messages,
+    double? temperature,
+    double? topP,
+    int? maxTokens,
+    Map<String, String>? metadata,
+  }) {
+    final meta = <String, String>{
+      'provider_id': config.id,
+      if (config.baseUrl.isNotEmpty) 'base_url': config.baseUrl,
+      if (config.providerType != null) 'provider_type': config.providerType!.name,
+    };
+    if (metadata != null && metadata.isNotEmpty) {
+      meta.addAll(metadata);
+    }
+    return rust_llm_types.FrbChatRequest(
+      requestId: requestId,
+      provider: config.id,
+      model: modelId,
+      messages: messages,
+      temperature: temperature,
+      topP: topP,
+      maxOutputTokens: maxTokens,
+      metadata: meta,
+    );
+  }
+
+  static List<rust_llm_types.FrbChatMessage> _buildRustMessages(
+    List<Map<String, dynamic>> messages,
+  ) {
+    final result = <rust_llm_types.FrbChatMessage>[];
+    for (final msg in messages) {
+      final role = _frbRoleFromString((msg['role'] ?? 'user').toString());
+      final parts = <String>[];
+      final content = msg['content'];
+      if (content is String && content.isNotEmpty) {
+        parts.add(content);
+      } else if (content is List) {
+        for (final item in content) {
+          if (item is String && item.isNotEmpty) {
+            parts.add(item);
+          } else if (item is Map && item['text'] is String) {
+            parts.add(item['text'] as String);
+          } else if (item != null) {
+            parts.add(jsonEncode(item));
+          }
+        }
+      } else if (content is Map && content.isNotEmpty) {
+        if (content['text'] is String) {
+          parts.add(content['text'] as String);
+        } else {
+          parts.add(jsonEncode(content));
+        }
+      } else if (content != null) {
+        final value = content.toString();
+        if (value.isNotEmpty) parts.add(value);
+      }
+
+      final extraParts = msg['parts'];
+      if (extraParts is List) {
+        for (final entry in extraParts) {
+          if (entry is String && entry.isNotEmpty) {
+            parts.add(entry);
+          } else if (entry is Map && entry['text'] is String) {
+            parts.add(entry['text'] as String);
+          } else if (entry != null) {
+            parts.add(jsonEncode(entry));
+          }
+        }
+      }
+
+      if (parts.isEmpty) {
+        parts.add('');
+      }
+
+      result.add(
+        rust_llm_types.FrbChatMessage(
+          role: role,
+          parts: parts,
+        ),
+      );
+    }
+    return result;
+  }
+
+  static rust_llm_types.FrbChatRole _frbRoleFromString(String role) {
+    switch (role.toLowerCase()) {
+      case 'assistant':
+        return rust_llm_types.FrbChatRole.assistant;
+      case 'system':
+        return rust_llm_types.FrbChatRole.system;
+      case 'tool':
+        return rust_llm_types.FrbChatRole.tool;
+      default:
+        return rust_llm_types.FrbChatRole.user;
+    }
+  }
+
+  static Map<String, String> _buildRustMetadata({
+    required ProviderConfig config,
+    List<String>? userImagePaths,
+    List<Map<String, dynamic>>? tools,
+    int? thinkingBudget,
+    Map<String, String>? extraHeaders,
+    Map<String, dynamic>? extraBody,
+  }) {
+    final out = <String, String>{
+      'provider_name': config.name,
+      'model_count': config.models.length.toString(),
+    };
+    if (config.projectId != null && config.projectId!.isNotEmpty) {
+      out['project_id'] = config.projectId!;
+    }
+    if (config.location != null && config.location!.isNotEmpty) {
+      out['location'] = config.location!;
+    }
+    if (userImagePaths != null && userImagePaths.isNotEmpty) {
+      out['user_images'] = jsonEncode(userImagePaths);
+    }
+    if (tools != null && tools.isNotEmpty) {
+      out['tools'] = jsonEncode(tools);
+    }
+    if (thinkingBudget != null) {
+      out['thinking_budget'] = thinkingBudget.toString();
+    }
+    if (extraHeaders != null && extraHeaders.isNotEmpty) {
+      extraHeaders.forEach((key, value) {
+        out['header_$key'] = value;
+      });
+    }
+    if (extraBody != null && extraBody.isNotEmpty) {
+      extraBody.forEach((key, value) {
+        out['body_$key'] = value.toString();
+      });
+    }
+    return out;
+  }
+
+  static TokenUsage _usageFromMap(Map<String, dynamic> map) {
+    final prompt = (map['prompt_tokens'] as num?)?.toInt() ?? 0;
+    final completion = (map['completion_tokens'] as num?)?.toInt() ?? 0;
+    final cached = (map['cached_tokens'] as num?)?.toInt() ?? 0;
+    final total = (map['total_tokens'] as num?)?.toInt() ?? (prompt + completion);
+    return TokenUsage(
+      promptTokens: prompt,
+      completionTokens: completion,
+      cachedTokens: cached,
+      totalTokens: total,
+    );
   }
 
 }

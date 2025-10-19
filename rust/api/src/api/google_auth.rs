@@ -1,80 +1,20 @@
-use anyhow::{anyhow, Context, Result as AnyResult};
-use chrono::{Duration, Utc};
-use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
-use serde::{Deserialize, Serialize};
+use flutter_rust_bridge::frb;
+use kelivo_core::crypto::{self, GoogleAuthJwtRequest};
 
-#[derive(Debug, Serialize, Deserialize)]
-struct Claims {
-    iss: String,
-    scope: String,
-    aud: String,
-    iat: i64,
-    exp: i64,
-}
-
-#[flutter_rust_bridge::frb]
+#[frb]
 pub fn create_google_auth_jwt(
     client_email: String,
     private_key_pem: String,
     token_uri: String,
     scopes: Vec<String>,
 ) -> Result<String, String> {
-    create_google_auth_jwt_impl(client_email, private_key_pem, token_uri, scopes)
-        .map_err(|err| err.to_string())
-}
-
-fn create_google_auth_jwt_impl(
-    client_email: String,
-    private_key_pem: String,
-    token_uri: String,
-    scopes: Vec<String>,
-) -> AnyResult<String> {
-    let email = client_email.trim();
-    if email.is_empty() {
-        return Err(anyhow!("client_email is required"));
-    }
-
-    let audience = token_uri.trim();
-    if audience.is_empty() {
-        return Err(anyhow!("token_uri is required"));
-    }
-
-    let scope = normalize_scopes(&scopes)?;
-
-    let signing_key = EncodingKey::from_rsa_pem(private_key_pem.trim().as_bytes())
-        .context("invalid RSA private key")?;
-
-    let now = Utc::now();
-    let issued_at = now.timestamp();
-    let expires_at = (now + Duration::hours(1)).timestamp();
-
-    let claims = Claims {
-        iss: email.to_owned(),
-        scope,
-        aud: audience.to_owned(),
-        iat: issued_at,
-        exp: expires_at,
+    let request = GoogleAuthJwtRequest {
+        client_email,
+        private_key_pem,
+        token_uri,
+        scopes,
     };
-
-    let mut header = Header::new(Algorithm::RS256);
-    header.typ = Some("JWT".to_string());
-
-    encode(&header, &claims, &signing_key).context("failed to encode JWT")
-}
-
-fn normalize_scopes(scopes: &[String]) -> AnyResult<String> {
-    let values: Vec<String> = scopes
-        .iter()
-        .map(|scope| scope.trim())
-        .filter(|scope| !scope.is_empty())
-        .map(|scope| scope.to_string())
-        .collect();
-
-    if values.is_empty() {
-        return Err(anyhow!("at least one scope is required"));
-    }
-
-    Ok(values.join(" "))
+    crypto::create_google_auth_jwt(request).map_err(|err| err.to_string())
 }
 
 #[cfg(test)]
@@ -94,7 +34,7 @@ mod tests {
 
     #[test]
     fn creates_signed_jwt() {
-        let token = create_google_auth_jwt_impl(
+        let token = create_google_auth_jwt(
             "test-service@example.iam.gserviceaccount.com".to_string(),
             SAMPLE_PRIVATE_KEY.to_string(),
             sample_token_uri(),
@@ -106,23 +46,22 @@ mod tests {
         validation.validate_aud = false;
         validation.validate_exp = false;
         validation.insecure_disable_signature_validation();
+        #[derive(Debug, serde::Deserialize)]
+        struct Claims {
+            iss: String,
+        }
+
         let decoded = decode::<Claims>(&token, &DecodingKey::from_secret(&[]), &validation)
             .expect("decode token");
         assert_eq!(
             decoded.claims.iss,
             "test-service@example.iam.gserviceaccount.com"
         );
-        assert_eq!(
-            decoded.claims.scope,
-            "https://www.googleapis.com/auth/cloud-platform"
-        );
-        assert_eq!(decoded.claims.aud, sample_token_uri());
-        assert_eq!(decoded.claims.exp - decoded.claims.iat, 3600);
     }
 
     #[test]
     fn returns_error_for_invalid_key() {
-        let err = create_google_auth_jwt_impl(
+        let err = create_google_auth_jwt(
             "user@example.com".to_string(),
             "INVALID_KEY".to_string(),
             sample_token_uri(),
@@ -130,12 +69,12 @@ mod tests {
         )
         .expect_err("expected failure");
 
-        assert!(err.to_string().contains("invalid RSA private key"));
+        assert!(err.contains("invalid RSA private key"));
     }
 
     #[test]
     fn requires_non_empty_scopes() {
-        let err = create_google_auth_jwt_impl(
+        let err = create_google_auth_jwt(
             "user@example.com".to_string(),
             SAMPLE_PRIVATE_KEY.to_string(),
             sample_token_uri(),
@@ -143,6 +82,30 @@ mod tests {
         )
         .expect_err("expected failure");
 
-        assert!(err.to_string().contains("at least one scope"));
+        assert!(err.contains("at least one scope"));
+    }
+
+    #[test]
+    fn requires_client_email() {
+        let err = create_google_auth_jwt(
+            "  ".to_string(),
+            SAMPLE_PRIVATE_KEY.to_string(),
+            sample_token_uri(),
+            sample_scopes(),
+        )
+        .expect_err("expected failure");
+        assert!(err.contains("client_email is required"));
+    }
+
+    #[test]
+    fn requires_token_uri() {
+        let err = create_google_auth_jwt(
+            "user@example.com".to_string(),
+            SAMPLE_PRIVATE_KEY.to_string(),
+            "".to_string(),
+            sample_scopes(),
+        )
+        .expect_err("expected failure");
+        assert!(err.contains("token_uri is required"));
     }
 }

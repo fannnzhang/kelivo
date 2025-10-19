@@ -4,8 +4,11 @@
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
 import 'api/backup.dart';
+import 'api/db.dart';
 import 'api/document_parser.dart';
 import 'api/google_auth.dart';
+import 'api/llm.dart';
+import 'api/llm_types.dart';
 import 'api/markdown_sanitizer.dart';
 import 'api/simple.dart';
 import 'dart:async';
@@ -70,12 +73,12 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.11.1';
 
   @override
-  int get rustContentHash => 841752028;
+  int get rustContentHash => -1722857752;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
-        stem: 'rust_lib_Kelivo',
-        ioDirectory: 'rust/target/release/',
+        stem: 'rust_lib_kelivo',
+        ioDirectory: 'rust/api/target/release/',
         webPrefix: 'pkg/',
       );
 }
@@ -91,6 +94,38 @@ abstract class RustLibApi extends BaseApi {
     required String tokenUri,
     required List<String> scopes,
   });
+
+  Future<void> crateApiDbDbDeleteConversation({required String id});
+
+  Future<FrbDbSnapshot> crateApiDbDbExportSnapshot();
+
+  Future<FrbImportSummary> crateApiDbDbImportSnapshot({
+    required FrbDbSnapshot snapshot,
+  });
+
+  Future<FrbDbInfo> crateApiDbDbInit({required String dbPath});
+
+  Future<bool> crateApiDbDbIsInitialized();
+
+  Future<FrbConversation?> crateApiDbDbQueryConversation({required String id});
+
+  Future<List<FrbMessage>> crateApiDbDbQueryMessages({
+    required String conversationId,
+    required PlatformInt64 limit,
+    required PlatformInt64 offset,
+  });
+
+  Future<List<FrbToolEvent>> crateApiDbDbQueryToolEvents({
+    required String messageId,
+  });
+
+  Future<void> crateApiDbDbUpsertConversation({
+    required FrbConversation conversation,
+  });
+
+  Future<void> crateApiDbDbUpsertMessage({required FrbMessage message});
+
+  Future<void> crateApiDbDbUpsertToolEvent({required FrbToolEvent event});
 
   Future<List<BackupZipEntry>> crateApiBackupExtractBackupZip({
     required List<int> bytes,
@@ -112,9 +147,15 @@ abstract class RustLibApi extends BaseApi {
     required String markdown,
   });
 
+  Future<bool> crateApiLlmLlmCancel({required String requestId});
+
+  Future<FrbChatResponse> crateApiLlmLlmChat({required FrbChatRequest request});
+
+  Stream<String> crateApiLlmLlmChatStream({required FrbChatRequest request});
+
   Future<List<WebDavEntry>> crateApiBackupParseWebdavPropfind({
     required String xml,
-    required String baseUrl,
+    required String baseHref,
   });
 
   Future<String> crateApiDocumentParserReadTextFallback({required String path});
@@ -205,6 +246,342 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<void> crateApiDbDbDeleteConversation({required String id}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(id, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 3,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiDbDbDeleteConversationConstMeta,
+        argValues: [id],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDbDbDeleteConversationConstMeta =>
+      const TaskConstMeta(
+        debugName: "db_delete_conversation",
+        argNames: ["id"],
+      );
+
+  @override
+  Future<FrbDbSnapshot> crateApiDbDbExportSnapshot() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 4,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_frb_db_snapshot,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiDbDbExportSnapshotConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDbDbExportSnapshotConstMeta =>
+      const TaskConstMeta(debugName: "db_export_snapshot", argNames: []);
+
+  @override
+  Future<FrbImportSummary> crateApiDbDbImportSnapshot({
+    required FrbDbSnapshot snapshot,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_frb_db_snapshot(snapshot, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 5,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_frb_import_summary,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiDbDbImportSnapshotConstMeta,
+        argValues: [snapshot],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDbDbImportSnapshotConstMeta => const TaskConstMeta(
+    debugName: "db_import_snapshot",
+    argNames: ["snapshot"],
+  );
+
+  @override
+  Future<FrbDbInfo> crateApiDbDbInit({required String dbPath}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(dbPath, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 6,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_frb_db_info,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiDbDbInitConstMeta,
+        argValues: [dbPath],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDbDbInitConstMeta =>
+      const TaskConstMeta(debugName: "db_init", argNames: ["dbPath"]);
+
+  @override
+  Future<bool> crateApiDbDbIsInitialized() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 7,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiDbDbIsInitializedConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDbDbIsInitializedConstMeta =>
+      const TaskConstMeta(debugName: "db_is_initialized", argNames: []);
+
+  @override
+  Future<FrbConversation?> crateApiDbDbQueryConversation({required String id}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(id, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 8,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_box_autoadd_frb_conversation,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiDbDbQueryConversationConstMeta,
+        argValues: [id],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDbDbQueryConversationConstMeta =>
+      const TaskConstMeta(debugName: "db_query_conversation", argNames: ["id"]);
+
+  @override
+  Future<List<FrbMessage>> crateApiDbDbQueryMessages({
+    required String conversationId,
+    required PlatformInt64 limit,
+    required PlatformInt64 offset,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(conversationId, serializer);
+          sse_encode_i_64(limit, serializer);
+          sse_encode_i_64(offset, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 9,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_frb_message,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiDbDbQueryMessagesConstMeta,
+        argValues: [conversationId, limit, offset],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDbDbQueryMessagesConstMeta => const TaskConstMeta(
+    debugName: "db_query_messages",
+    argNames: ["conversationId", "limit", "offset"],
+  );
+
+  @override
+  Future<List<FrbToolEvent>> crateApiDbDbQueryToolEvents({
+    required String messageId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(messageId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 10,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_frb_tool_event,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiDbDbQueryToolEventsConstMeta,
+        argValues: [messageId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDbDbQueryToolEventsConstMeta =>
+      const TaskConstMeta(
+        debugName: "db_query_tool_events",
+        argNames: ["messageId"],
+      );
+
+  @override
+  Future<void> crateApiDbDbUpsertConversation({
+    required FrbConversation conversation,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_frb_conversation(conversation, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 11,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiDbDbUpsertConversationConstMeta,
+        argValues: [conversation],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDbDbUpsertConversationConstMeta =>
+      const TaskConstMeta(
+        debugName: "db_upsert_conversation",
+        argNames: ["conversation"],
+      );
+
+  @override
+  Future<void> crateApiDbDbUpsertMessage({required FrbMessage message}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_frb_message(message, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 12,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiDbDbUpsertMessageConstMeta,
+        argValues: [message],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDbDbUpsertMessageConstMeta => const TaskConstMeta(
+    debugName: "db_upsert_message",
+    argNames: ["message"],
+  );
+
+  @override
+  Future<void> crateApiDbDbUpsertToolEvent({required FrbToolEvent event}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_frb_tool_event(event, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 13,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiDbDbUpsertToolEventConstMeta,
+        argValues: [event],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiDbDbUpsertToolEventConstMeta =>
+      const TaskConstMeta(
+        debugName: "db_upsert_tool_event",
+        argNames: ["event"],
+      );
+
+  @override
   Future<List<BackupZipEntry>> crateApiBackupExtractBackupZip({
     required List<int> bytes,
   }) {
@@ -216,7 +593,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 3,
+            funcId: 14,
             port: port_,
           );
         },
@@ -246,7 +623,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 4,
+            funcId: 15,
             port: port_,
           );
         },
@@ -279,7 +656,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 5,
+            funcId: 16,
             port: port_,
           );
         },
@@ -307,7 +684,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(name, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 6)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 17)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
@@ -332,7 +709,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 7,
+            funcId: 18,
             port: port_,
           );
         },
@@ -362,7 +739,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 8,
+            funcId: 19,
             port: port_,
           );
         },
@@ -385,20 +762,113 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<bool> crateApiLlmLlmCancel({required String requestId}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(requestId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 20,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bool,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiLlmLlmCancelConstMeta,
+        argValues: [requestId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiLlmLlmCancelConstMeta =>
+      const TaskConstMeta(debugName: "llm_cancel", argNames: ["requestId"]);
+
+  @override
+  Future<FrbChatResponse> crateApiLlmLlmChat({
+    required FrbChatRequest request,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_frb_chat_request(request, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 21,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_frb_chat_response,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiLlmLlmChatConstMeta,
+        argValues: [request],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiLlmLlmChatConstMeta =>
+      const TaskConstMeta(debugName: "llm_chat", argNames: ["request"]);
+
+  @override
+  Stream<String> crateApiLlmLlmChatStream({required FrbChatRequest request}) {
+    final sink = RustStreamSink<String>();
+    unawaited(
+      handler.executeNormal(
+        NormalTask(
+          callFfi: (port_) {
+            final serializer = SseSerializer(generalizedFrbRustBinding);
+            sse_encode_box_autoadd_frb_chat_request(request, serializer);
+            sse_encode_StreamSink_String_Dco(sink, serializer);
+            pdeCallFfi(
+              generalizedFrbRustBinding,
+              serializer,
+              funcId: 22,
+              port: port_,
+            );
+          },
+          codec: SseCodec(
+            decodeSuccessData: sse_decode_unit,
+            decodeErrorData: sse_decode_String,
+          ),
+          constMeta: kCrateApiLlmLlmChatStreamConstMeta,
+          argValues: [request, sink],
+          apiImpl: this,
+        ),
+      ),
+    );
+    return sink.stream;
+  }
+
+  TaskConstMeta get kCrateApiLlmLlmChatStreamConstMeta => const TaskConstMeta(
+    debugName: "llm_chat_stream",
+    argNames: ["request", "sink"],
+  );
+
+  @override
   Future<List<WebDavEntry>> crateApiBackupParseWebdavPropfind({
     required String xml,
-    required String baseUrl,
+    required String baseHref,
   }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(xml, serializer);
-          sse_encode_String(baseUrl, serializer);
+          sse_encode_String(baseHref, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 9,
+            funcId: 23,
             port: port_,
           );
         },
@@ -407,7 +877,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: sse_decode_String,
         ),
         constMeta: kCrateApiBackupParseWebdavPropfindConstMeta,
-        argValues: [xml, baseUrl],
+        argValues: [xml, baseHref],
         apiImpl: this,
       ),
     );
@@ -416,7 +886,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiBackupParseWebdavPropfindConstMeta =>
       const TaskConstMeta(
         debugName: "parse_webdav_propfind",
-        argNames: ["xml", "baseUrl"],
+        argNames: ["xml", "baseHref"],
       );
 
   @override
@@ -431,7 +901,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 10,
+            funcId: 24,
             port: port_,
           );
         },
@@ -461,7 +931,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 11,
+            funcId: 25,
             port: port_,
           );
         },
@@ -482,6 +952,36 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         debugName: "replace_inline_base64_images",
         argNames: ["markdown"],
       );
+
+  @protected
+  AnyhowException dco_decode_AnyhowException(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return AnyhowException(raw as String);
+  }
+
+  @protected
+  Map<String, String> dco_decode_Map_String_String_None(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return Map.fromEntries(
+      dco_decode_list_record_string_string(
+        raw,
+      ).map((e) => MapEntry(e.$1, e.$2)),
+    );
+  }
+
+  @protected
+  Map<String, int> dco_decode_Map_String_i_32_None(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return Map.fromEntries(
+      dco_decode_list_record_string_i_32(raw).map((e) => MapEntry(e.$1, e.$2)),
+    );
+  }
+
+  @protected
+  RustStreamSink<String> dco_decode_StreamSink_String_Dco(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    throw UnimplementedError();
+  }
 
   @protected
   String dco_decode_String(dynamic raw) {
@@ -522,6 +1022,236 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  double dco_decode_box_autoadd_f_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as double;
+  }
+
+  @protected
+  FrbChatRequest dco_decode_box_autoadd_frb_chat_request(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_frb_chat_request(raw);
+  }
+
+  @protected
+  FrbConversation dco_decode_box_autoadd_frb_conversation(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_frb_conversation(raw);
+  }
+
+  @protected
+  FrbDbSnapshot dco_decode_box_autoadd_frb_db_snapshot(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_frb_db_snapshot(raw);
+  }
+
+  @protected
+  FrbMessage dco_decode_box_autoadd_frb_message(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_frb_message(raw);
+  }
+
+  @protected
+  FrbToolEvent dco_decode_box_autoadd_frb_tool_event(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_frb_tool_event(raw);
+  }
+
+  @protected
+  int dco_decode_box_autoadd_i_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as int;
+  }
+
+  @protected
+  int dco_decode_box_autoadd_u_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as int;
+  }
+
+  @protected
+  double dco_decode_f_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as double;
+  }
+
+  @protected
+  FrbChatMessage dco_decode_frb_chat_message(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return FrbChatMessage(
+      role: dco_decode_frb_chat_role(arr[0]),
+      parts: dco_decode_list_String(arr[1]),
+    );
+  }
+
+  @protected
+  FrbChatRequest dco_decode_frb_chat_request(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 8)
+      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+    return FrbChatRequest(
+      requestId: dco_decode_String(arr[0]),
+      provider: dco_decode_opt_String(arr[1]),
+      model: dco_decode_String(arr[2]),
+      messages: dco_decode_list_frb_chat_message(arr[3]),
+      temperature: dco_decode_opt_box_autoadd_f_32(arr[4]),
+      topP: dco_decode_opt_box_autoadd_f_32(arr[5]),
+      maxOutputTokens: dco_decode_opt_box_autoadd_u_32(arr[6]),
+      metadata: dco_decode_Map_String_String_None(arr[7]),
+    );
+  }
+
+  @protected
+  FrbChatResponse dco_decode_frb_chat_response(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return FrbChatResponse(
+      requestId: dco_decode_String(arr[0]),
+      providerId: dco_decode_String(arr[1]),
+      model: dco_decode_String(arr[2]),
+      outputText: dco_decode_String(arr[3]),
+      usage: dco_decode_frb_chat_usage(arr[4]),
+    );
+  }
+
+  @protected
+  FrbChatRole dco_decode_frb_chat_role(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return FrbChatRole.values[raw as int];
+  }
+
+  @protected
+  FrbChatUsage dco_decode_frb_chat_usage(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return FrbChatUsage(
+      promptTokens: dco_decode_u_32(arr[0]),
+      completionTokens: dco_decode_u_32(arr[1]),
+      totalTokens: dco_decode_u_32(arr[2]),
+    );
+  }
+
+  @protected
+  FrbConversation dco_decode_frb_conversation(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 10)
+      throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
+    return FrbConversation(
+      id: dco_decode_String(arr[0]),
+      title: dco_decode_String(arr[1]),
+      createdAt: dco_decode_String(arr[2]),
+      updatedAt: dco_decode_String(arr[3]),
+      messageIds: dco_decode_list_String(arr[4]),
+      isPinned: dco_decode_bool(arr[5]),
+      mcpServerIds: dco_decode_list_String(arr[6]),
+      assistantId: dco_decode_opt_String(arr[7]),
+      truncateIndex: dco_decode_i_32(arr[8]),
+      versionSelections: dco_decode_Map_String_i_32_None(arr[9]),
+    );
+  }
+
+  @protected
+  FrbDbInfo dco_decode_frb_db_info(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return FrbDbInfo(
+      path: dco_decode_String(arr[0]),
+      appliedMigrations: dco_decode_u_32(arr[1]),
+      version: dco_decode_u_32(arr[2]),
+    );
+  }
+
+  @protected
+  FrbDbSnapshot dco_decode_frb_db_snapshot(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return FrbDbSnapshot(
+      conversations: dco_decode_list_frb_conversation(arr[0]),
+      messages: dco_decode_list_frb_message(arr[1]),
+      toolEvents: dco_decode_list_frb_tool_event(arr[2]),
+    );
+  }
+
+  @protected
+  FrbImportSummary dco_decode_frb_import_summary(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return FrbImportSummary(
+      conversations: dco_decode_u_32(arr[0]),
+      messages: dco_decode_u_32(arr[1]),
+      toolEvents: dco_decode_u_32(arr[2]),
+    );
+  }
+
+  @protected
+  FrbMessage dco_decode_frb_message(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 16)
+      throw Exception('unexpected arr length: expect 16 but see ${arr.length}');
+    return FrbMessage(
+      id: dco_decode_String(arr[0]),
+      conversationId: dco_decode_String(arr[1]),
+      role: dco_decode_String(arr[2]),
+      content: dco_decode_String(arr[3]),
+      timestamp: dco_decode_String(arr[4]),
+      modelId: dco_decode_opt_String(arr[5]),
+      providerId: dco_decode_opt_String(arr[6]),
+      totalTokens: dco_decode_opt_box_autoadd_i_32(arr[7]),
+      isStreaming: dco_decode_bool(arr[8]),
+      reasoningText: dco_decode_opt_String(arr[9]),
+      reasoningStartAt: dco_decode_opt_String(arr[10]),
+      reasoningFinishedAt: dco_decode_opt_String(arr[11]),
+      translation: dco_decode_opt_String(arr[12]),
+      reasoningSegmentsJson: dco_decode_opt_String(arr[13]),
+      groupId: dco_decode_opt_String(arr[14]),
+      version: dco_decode_i_32(arr[15]),
+    );
+  }
+
+  @protected
+  FrbToolEvent dco_decode_frb_tool_event(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return FrbToolEvent(
+      id: dco_decode_String(arr[0]),
+      messageId: dco_decode_String(arr[1]),
+      name: dco_decode_String(arr[2]),
+      payload: dco_decode_String(arr[3]),
+      createdAt: dco_decode_String(arr[4]),
+    );
+  }
+
+  @protected
+  int dco_decode_i_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as int;
+  }
+
+  @protected
+  PlatformInt64 dco_decode_i_64(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dcoDecodeI64(raw);
+  }
+
+  @protected
   List<String> dco_decode_list_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_String).toList();
@@ -544,6 +1274,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<FrbChatMessage> dco_decode_list_frb_chat_message(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_frb_chat_message).toList();
+  }
+
+  @protected
+  List<FrbConversation> dco_decode_list_frb_conversation(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_frb_conversation).toList();
+  }
+
+  @protected
+  List<FrbMessage> dco_decode_list_frb_message(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_frb_message).toList();
+  }
+
+  @protected
+  List<FrbToolEvent> dco_decode_list_frb_tool_event(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_frb_tool_event).toList();
+  }
+
+  @protected
   List<int> dco_decode_list_prim_u_8_loose(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as List<int>;
@@ -556,6 +1310,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<(String, int)> dco_decode_list_record_string_i_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_record_string_i_32).toList();
+  }
+
+  @protected
+  List<(String, String)> dco_decode_list_record_string_string(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_record_string_string).toList();
+  }
+
+  @protected
   List<WebDavEntry> dco_decode_list_web_dav_entry(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_web_dav_entry).toList();
@@ -565,6 +1331,56 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   String? dco_decode_opt_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_String(raw);
+  }
+
+  @protected
+  double? dco_decode_opt_box_autoadd_f_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_f_32(raw);
+  }
+
+  @protected
+  FrbConversation? dco_decode_opt_box_autoadd_frb_conversation(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_frb_conversation(raw);
+  }
+
+  @protected
+  int? dco_decode_opt_box_autoadd_i_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_i_32(raw);
+  }
+
+  @protected
+  int? dco_decode_opt_box_autoadd_u_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_u_32(raw);
+  }
+
+  @protected
+  (String, int) dco_decode_record_string_i_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2) {
+      throw Exception('Expected 2 elements, got ${arr.length}');
+    }
+    return (dco_decode_String(arr[0]), dco_decode_i_32(arr[1]));
+  }
+
+  @protected
+  (String, String) dco_decode_record_string_string(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2) {
+      throw Exception('Expected 2 elements, got ${arr.length}');
+    }
+    return (dco_decode_String(arr[0]), dco_decode_String(arr[1]));
+  }
+
+  @protected
+  int dco_decode_u_32(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as int;
   }
 
   @protected
@@ -598,6 +1414,39 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       lastModifiedRfc3339: dco_decode_opt_String(arr[3]),
       isDirectory: dco_decode_bool(arr[4]),
     );
+  }
+
+  @protected
+  AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_String(deserializer);
+    return AnyhowException(inner);
+  }
+
+  @protected
+  Map<String, String> sse_decode_Map_String_String_None(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_list_record_string_string(deserializer);
+    return Map.fromEntries(inner.map((e) => MapEntry(e.$1, e.$2)));
+  }
+
+  @protected
+  Map<String, int> sse_decode_Map_String_i_32_None(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_list_record_string_i_32(deserializer);
+    return Map.fromEntries(inner.map((e) => MapEntry(e.$1, e.$2)));
+  }
+
+  @protected
+  RustStreamSink<String> sse_decode_StreamSink_String_Dco(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    throw UnimplementedError('Unreachable ()');
   }
 
   @protected
@@ -635,6 +1484,270 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   bool sse_decode_bool(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getUint8() != 0;
+  }
+
+  @protected
+  double sse_decode_box_autoadd_f_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_f_32(deserializer));
+  }
+
+  @protected
+  FrbChatRequest sse_decode_box_autoadd_frb_chat_request(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_frb_chat_request(deserializer));
+  }
+
+  @protected
+  FrbConversation sse_decode_box_autoadd_frb_conversation(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_frb_conversation(deserializer));
+  }
+
+  @protected
+  FrbDbSnapshot sse_decode_box_autoadd_frb_db_snapshot(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_frb_db_snapshot(deserializer));
+  }
+
+  @protected
+  FrbMessage sse_decode_box_autoadd_frb_message(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_frb_message(deserializer));
+  }
+
+  @protected
+  FrbToolEvent sse_decode_box_autoadd_frb_tool_event(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_frb_tool_event(deserializer));
+  }
+
+  @protected
+  int sse_decode_box_autoadd_i_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_i_32(deserializer));
+  }
+
+  @protected
+  int sse_decode_box_autoadd_u_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_u_32(deserializer));
+  }
+
+  @protected
+  double sse_decode_f_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getFloat32();
+  }
+
+  @protected
+  FrbChatMessage sse_decode_frb_chat_message(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_role = sse_decode_frb_chat_role(deserializer);
+    var var_parts = sse_decode_list_String(deserializer);
+    return FrbChatMessage(role: var_role, parts: var_parts);
+  }
+
+  @protected
+  FrbChatRequest sse_decode_frb_chat_request(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_requestId = sse_decode_String(deserializer);
+    var var_provider = sse_decode_opt_String(deserializer);
+    var var_model = sse_decode_String(deserializer);
+    var var_messages = sse_decode_list_frb_chat_message(deserializer);
+    var var_temperature = sse_decode_opt_box_autoadd_f_32(deserializer);
+    var var_topP = sse_decode_opt_box_autoadd_f_32(deserializer);
+    var var_maxOutputTokens = sse_decode_opt_box_autoadd_u_32(deserializer);
+    var var_metadata = sse_decode_Map_String_String_None(deserializer);
+    return FrbChatRequest(
+      requestId: var_requestId,
+      provider: var_provider,
+      model: var_model,
+      messages: var_messages,
+      temperature: var_temperature,
+      topP: var_topP,
+      maxOutputTokens: var_maxOutputTokens,
+      metadata: var_metadata,
+    );
+  }
+
+  @protected
+  FrbChatResponse sse_decode_frb_chat_response(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_requestId = sse_decode_String(deserializer);
+    var var_providerId = sse_decode_String(deserializer);
+    var var_model = sse_decode_String(deserializer);
+    var var_outputText = sse_decode_String(deserializer);
+    var var_usage = sse_decode_frb_chat_usage(deserializer);
+    return FrbChatResponse(
+      requestId: var_requestId,
+      providerId: var_providerId,
+      model: var_model,
+      outputText: var_outputText,
+      usage: var_usage,
+    );
+  }
+
+  @protected
+  FrbChatRole sse_decode_frb_chat_role(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return FrbChatRole.values[inner];
+  }
+
+  @protected
+  FrbChatUsage sse_decode_frb_chat_usage(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_promptTokens = sse_decode_u_32(deserializer);
+    var var_completionTokens = sse_decode_u_32(deserializer);
+    var var_totalTokens = sse_decode_u_32(deserializer);
+    return FrbChatUsage(
+      promptTokens: var_promptTokens,
+      completionTokens: var_completionTokens,
+      totalTokens: var_totalTokens,
+    );
+  }
+
+  @protected
+  FrbConversation sse_decode_frb_conversation(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_String(deserializer);
+    var var_title = sse_decode_String(deserializer);
+    var var_createdAt = sse_decode_String(deserializer);
+    var var_updatedAt = sse_decode_String(deserializer);
+    var var_messageIds = sse_decode_list_String(deserializer);
+    var var_isPinned = sse_decode_bool(deserializer);
+    var var_mcpServerIds = sse_decode_list_String(deserializer);
+    var var_assistantId = sse_decode_opt_String(deserializer);
+    var var_truncateIndex = sse_decode_i_32(deserializer);
+    var var_versionSelections = sse_decode_Map_String_i_32_None(deserializer);
+    return FrbConversation(
+      id: var_id,
+      title: var_title,
+      createdAt: var_createdAt,
+      updatedAt: var_updatedAt,
+      messageIds: var_messageIds,
+      isPinned: var_isPinned,
+      mcpServerIds: var_mcpServerIds,
+      assistantId: var_assistantId,
+      truncateIndex: var_truncateIndex,
+      versionSelections: var_versionSelections,
+    );
+  }
+
+  @protected
+  FrbDbInfo sse_decode_frb_db_info(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_path = sse_decode_String(deserializer);
+    var var_appliedMigrations = sse_decode_u_32(deserializer);
+    var var_version = sse_decode_u_32(deserializer);
+    return FrbDbInfo(
+      path: var_path,
+      appliedMigrations: var_appliedMigrations,
+      version: var_version,
+    );
+  }
+
+  @protected
+  FrbDbSnapshot sse_decode_frb_db_snapshot(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_conversations = sse_decode_list_frb_conversation(deserializer);
+    var var_messages = sse_decode_list_frb_message(deserializer);
+    var var_toolEvents = sse_decode_list_frb_tool_event(deserializer);
+    return FrbDbSnapshot(
+      conversations: var_conversations,
+      messages: var_messages,
+      toolEvents: var_toolEvents,
+    );
+  }
+
+  @protected
+  FrbImportSummary sse_decode_frb_import_summary(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_conversations = sse_decode_u_32(deserializer);
+    var var_messages = sse_decode_u_32(deserializer);
+    var var_toolEvents = sse_decode_u_32(deserializer);
+    return FrbImportSummary(
+      conversations: var_conversations,
+      messages: var_messages,
+      toolEvents: var_toolEvents,
+    );
+  }
+
+  @protected
+  FrbMessage sse_decode_frb_message(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_String(deserializer);
+    var var_conversationId = sse_decode_String(deserializer);
+    var var_role = sse_decode_String(deserializer);
+    var var_content = sse_decode_String(deserializer);
+    var var_timestamp = sse_decode_String(deserializer);
+    var var_modelId = sse_decode_opt_String(deserializer);
+    var var_providerId = sse_decode_opt_String(deserializer);
+    var var_totalTokens = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_isStreaming = sse_decode_bool(deserializer);
+    var var_reasoningText = sse_decode_opt_String(deserializer);
+    var var_reasoningStartAt = sse_decode_opt_String(deserializer);
+    var var_reasoningFinishedAt = sse_decode_opt_String(deserializer);
+    var var_translation = sse_decode_opt_String(deserializer);
+    var var_reasoningSegmentsJson = sse_decode_opt_String(deserializer);
+    var var_groupId = sse_decode_opt_String(deserializer);
+    var var_version = sse_decode_i_32(deserializer);
+    return FrbMessage(
+      id: var_id,
+      conversationId: var_conversationId,
+      role: var_role,
+      content: var_content,
+      timestamp: var_timestamp,
+      modelId: var_modelId,
+      providerId: var_providerId,
+      totalTokens: var_totalTokens,
+      isStreaming: var_isStreaming,
+      reasoningText: var_reasoningText,
+      reasoningStartAt: var_reasoningStartAt,
+      reasoningFinishedAt: var_reasoningFinishedAt,
+      translation: var_translation,
+      reasoningSegmentsJson: var_reasoningSegmentsJson,
+      groupId: var_groupId,
+      version: var_version,
+    );
+  }
+
+  @protected
+  FrbToolEvent sse_decode_frb_tool_event(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_String(deserializer);
+    var var_messageId = sse_decode_String(deserializer);
+    var var_name = sse_decode_String(deserializer);
+    var var_payload = sse_decode_String(deserializer);
+    var var_createdAt = sse_decode_String(deserializer);
+    return FrbToolEvent(
+      id: var_id,
+      messageId: var_messageId,
+      name: var_name,
+      payload: var_payload,
+      createdAt: var_createdAt,
+    );
+  }
+
+  @protected
+  int sse_decode_i_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getInt32();
+  }
+
+  @protected
+  PlatformInt64 sse_decode_i_64(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getPlatformInt64();
   }
 
   @protected
@@ -678,6 +1791,60 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<FrbChatMessage> sse_decode_list_frb_chat_message(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <FrbChatMessage>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_frb_chat_message(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<FrbConversation> sse_decode_list_frb_conversation(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <FrbConversation>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_frb_conversation(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<FrbMessage> sse_decode_list_frb_message(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <FrbMessage>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_frb_message(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<FrbToolEvent> sse_decode_list_frb_tool_event(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <FrbToolEvent>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_frb_tool_event(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   List<int> sse_decode_list_prim_u_8_loose(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var len_ = sse_decode_i_32(deserializer);
@@ -689,6 +1856,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var len_ = sse_decode_i_32(deserializer);
     return deserializer.buffer.getUint8List(len_);
+  }
+
+  @protected
+  List<(String, int)> sse_decode_list_record_string_i_32(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <(String, int)>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_record_string_i_32(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<(String, String)> sse_decode_list_record_string_string(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <(String, String)>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_record_string_string(deserializer));
+    }
+    return ans_;
   }
 
   @protected
@@ -714,6 +1909,76 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     } else {
       return null;
     }
+  }
+
+  @protected
+  double? sse_decode_opt_box_autoadd_f_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_f_32(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  FrbConversation? sse_decode_opt_box_autoadd_frb_conversation(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_frb_conversation(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  int? sse_decode_opt_box_autoadd_i_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_i_32(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  int? sse_decode_opt_box_autoadd_u_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_u_32(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  (String, int) sse_decode_record_string_i_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_field0 = sse_decode_String(deserializer);
+    var var_field1 = sse_decode_i_32(deserializer);
+    return (var_field0, var_field1);
+  }
+
+  @protected
+  (String, String) sse_decode_record_string_string(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_field0 = sse_decode_String(deserializer);
+    var var_field1 = sse_decode_String(deserializer);
+    return (var_field0, var_field1);
+  }
+
+  @protected
+  int sse_decode_u_32(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return deserializer.buffer.getUint32();
   }
 
   @protected
@@ -751,9 +2016,53 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  int sse_decode_i_32(SseDeserializer deserializer) {
+  void sse_encode_AnyhowException(
+    AnyhowException self,
+    SseSerializer serializer,
+  ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return deserializer.buffer.getInt32();
+    sse_encode_String(self.message, serializer);
+  }
+
+  @protected
+  void sse_encode_Map_String_String_None(
+    Map<String, String> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_record_string_string(
+      self.entries.map((e) => (e.key, e.value)).toList(),
+      serializer,
+    );
+  }
+
+  @protected
+  void sse_encode_Map_String_i_32_None(
+    Map<String, int> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_record_string_i_32(
+      self.entries.map((e) => (e.key, e.value)).toList(),
+      serializer,
+    );
+  }
+
+  @protected
+  void sse_encode_StreamSink_String_Dco(
+    RustStreamSink<String> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(
+      self.setupAndSerialize(
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_String,
+          decodeErrorData: dco_decode_AnyhowException,
+        ),
+      ),
+      serializer,
+    );
   }
 
   @protected
@@ -791,6 +2100,219 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_f_32(double self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_f_32(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_frb_chat_request(
+    FrbChatRequest self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_frb_chat_request(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_frb_conversation(
+    FrbConversation self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_frb_conversation(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_frb_db_snapshot(
+    FrbDbSnapshot self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_frb_db_snapshot(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_frb_message(
+    FrbMessage self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_frb_message(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_frb_tool_event(
+    FrbToolEvent self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_frb_tool_event(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_i_32(int self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_u_32(int self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_32(self, serializer);
+  }
+
+  @protected
+  void sse_encode_f_32(double self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putFloat32(self);
+  }
+
+  @protected
+  void sse_encode_frb_chat_message(
+    FrbChatMessage self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_frb_chat_role(self.role, serializer);
+    sse_encode_list_String(self.parts, serializer);
+  }
+
+  @protected
+  void sse_encode_frb_chat_request(
+    FrbChatRequest self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.requestId, serializer);
+    sse_encode_opt_String(self.provider, serializer);
+    sse_encode_String(self.model, serializer);
+    sse_encode_list_frb_chat_message(self.messages, serializer);
+    sse_encode_opt_box_autoadd_f_32(self.temperature, serializer);
+    sse_encode_opt_box_autoadd_f_32(self.topP, serializer);
+    sse_encode_opt_box_autoadd_u_32(self.maxOutputTokens, serializer);
+    sse_encode_Map_String_String_None(self.metadata, serializer);
+  }
+
+  @protected
+  void sse_encode_frb_chat_response(
+    FrbChatResponse self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.requestId, serializer);
+    sse_encode_String(self.providerId, serializer);
+    sse_encode_String(self.model, serializer);
+    sse_encode_String(self.outputText, serializer);
+    sse_encode_frb_chat_usage(self.usage, serializer);
+  }
+
+  @protected
+  void sse_encode_frb_chat_role(FrbChatRole self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_frb_chat_usage(FrbChatUsage self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_32(self.promptTokens, serializer);
+    sse_encode_u_32(self.completionTokens, serializer);
+    sse_encode_u_32(self.totalTokens, serializer);
+  }
+
+  @protected
+  void sse_encode_frb_conversation(
+    FrbConversation self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.title, serializer);
+    sse_encode_String(self.createdAt, serializer);
+    sse_encode_String(self.updatedAt, serializer);
+    sse_encode_list_String(self.messageIds, serializer);
+    sse_encode_bool(self.isPinned, serializer);
+    sse_encode_list_String(self.mcpServerIds, serializer);
+    sse_encode_opt_String(self.assistantId, serializer);
+    sse_encode_i_32(self.truncateIndex, serializer);
+    sse_encode_Map_String_i_32_None(self.versionSelections, serializer);
+  }
+
+  @protected
+  void sse_encode_frb_db_info(FrbDbInfo self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.path, serializer);
+    sse_encode_u_32(self.appliedMigrations, serializer);
+    sse_encode_u_32(self.version, serializer);
+  }
+
+  @protected
+  void sse_encode_frb_db_snapshot(
+    FrbDbSnapshot self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_frb_conversation(self.conversations, serializer);
+    sse_encode_list_frb_message(self.messages, serializer);
+    sse_encode_list_frb_tool_event(self.toolEvents, serializer);
+  }
+
+  @protected
+  void sse_encode_frb_import_summary(
+    FrbImportSummary self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_32(self.conversations, serializer);
+    sse_encode_u_32(self.messages, serializer);
+    sse_encode_u_32(self.toolEvents, serializer);
+  }
+
+  @protected
+  void sse_encode_frb_message(FrbMessage self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.conversationId, serializer);
+    sse_encode_String(self.role, serializer);
+    sse_encode_String(self.content, serializer);
+    sse_encode_String(self.timestamp, serializer);
+    sse_encode_opt_String(self.modelId, serializer);
+    sse_encode_opt_String(self.providerId, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.totalTokens, serializer);
+    sse_encode_bool(self.isStreaming, serializer);
+    sse_encode_opt_String(self.reasoningText, serializer);
+    sse_encode_opt_String(self.reasoningStartAt, serializer);
+    sse_encode_opt_String(self.reasoningFinishedAt, serializer);
+    sse_encode_opt_String(self.translation, serializer);
+    sse_encode_opt_String(self.reasoningSegmentsJson, serializer);
+    sse_encode_opt_String(self.groupId, serializer);
+    sse_encode_i_32(self.version, serializer);
+  }
+
+  @protected
+  void sse_encode_frb_tool_event(FrbToolEvent self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.messageId, serializer);
+    sse_encode_String(self.name, serializer);
+    sse_encode_String(self.payload, serializer);
+    sse_encode_String(self.createdAt, serializer);
+  }
+
+  @protected
+  void sse_encode_i_32(int self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putInt32(self);
+  }
+
+  @protected
+  void sse_encode_i_64(PlatformInt64 self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putPlatformInt64(self);
+  }
+
+  @protected
   void sse_encode_list_String(List<String> self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
@@ -824,6 +2346,54 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_frb_chat_message(
+    List<FrbChatMessage> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_frb_chat_message(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_frb_conversation(
+    List<FrbConversation> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_frb_conversation(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_frb_message(
+    List<FrbMessage> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_frb_message(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_frb_tool_event(
+    List<FrbToolEvent> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_frb_tool_event(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_prim_u_8_loose(
     List<int> self,
     SseSerializer serializer,
@@ -846,6 +2416,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_record_string_i_32(
+    List<(String, int)> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_record_string_i_32(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_record_string_string(
+    List<(String, String)> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_record_string_string(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_web_dav_entry(
     List<WebDavEntry> self,
     SseSerializer serializer,
@@ -865,6 +2459,75 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     if (self != null) {
       sse_encode_String(self, serializer);
     }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_f_32(double? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_f_32(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_frb_conversation(
+    FrbConversation? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_frb_conversation(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_i_32(int? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_i_32(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_u_32(int? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_u_32(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_record_string_i_32(
+    (String, int) self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.$1, serializer);
+    sse_encode_i_32(self.$2, serializer);
+  }
+
+  @protected
+  void sse_encode_record_string_string(
+    (String, String) self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.$1, serializer);
+    sse_encode_String(self.$2, serializer);
+  }
+
+  @protected
+  void sse_encode_u_32(int self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    serializer.buffer.putUint32(self);
   }
 
   @protected
@@ -892,11 +2555,5 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_u_64(self.size, serializer);
     sse_encode_opt_String(self.lastModifiedRfc3339, serializer);
     sse_encode_bool(self.isDirectory, serializer);
-  }
-
-  @protected
-  void sse_encode_i_32(int self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    serializer.buffer.putInt32(self);
   }
 }

@@ -6,8 +6,6 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `parse_docx_xml`
-
 Future<String> extractTextFromPdf({required String path}) =>
     RustLib.instance.api.crateApiDocumentParserExtractTextFromPdf(path: path);
 

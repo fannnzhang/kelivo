@@ -204,6 +204,8 @@ class DataSync {
       await exportDirectory(await _getImagesDir(), 'images');
     }
 
+    entries.sort((a, b) => a.path.compareTo(b.path));
+
     try {
       final zipBytes = await backup_api.createBackupZip(entries: entries);
       await outFile.writeAsBytes(zipBytes);
