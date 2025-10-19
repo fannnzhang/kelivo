@@ -258,7 +258,7 @@ class DataSync {
     try {
       final parsed = await backup_api.parseWebdavPropfind(
         xml: res.body,
-        baseUrl: uri.toString(),
+        baseHref: uri.toString(),
       );
       final items = parsed.where((entry) => !entry.isDirectory).map((entry) {
         DateTime? lastModified;

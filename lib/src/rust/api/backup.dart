@@ -17,10 +17,10 @@ Future<List<BackupZipEntry>> extractBackupZip({required List<int> bytes}) =>
 
 Future<List<WebDavEntry>> parseWebdavPropfind({
   required String xml,
-  required String baseUrl,
+  required String baseHref,
 }) => RustLib.instance.api.crateApiBackupParseWebdavPropfind(
   xml: xml,
-  baseHref: baseUrl,
+  baseHref: baseHref,
 );
 
 class BackupZipEntry {
